@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Categories | Note Taking App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <div class="page-container">
+        <header class="page-header">
+            <a href="{{ url_for('index') }}" class="back-link">← Back to Notes</a>
+            <h1>📁 Manage Categories</h1>
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <!-- Add Category Form -->
+        <section class="form-section">
+            <h2>Add New Category</h2>
+            <form action="{{ url_for('manage_categories') }}" method="POST" class="category-form">
+                <input type="text" name="name" placeholder="Category name" required maxlength="50">
+                <input type="color" name="color" value="#6366f1" title="Pick a color">
+                <button type="submit" class="btn btn-primary">➕ Add Category</button>
+            </form>
+        </section>
+
+        <!-- Categories List -->
+        <section class="list-section">
+            <h2>Your Categories</h2>
+            {% if categories %}
+            <ul class="categories-list">
+                {% for cat in categories %}
+                <li class="category-item">
+                    <span class="color-dot large" style="background: {{ cat.color }}"></span>
+                    <span class="category-name">{{ cat.name }}</span>
+                    <form action="{{ url_for('delete_category', cat_id=cat.id) }}" method="POST" class="inline-form">
+                        <button type="submit" class="icon-btn delete-btn"
+                            onclick="return confirm('Delete this category? Notes will be uncategorized.')">
+                            🗑️
+                        </button>
+                    </form>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="empty-message">No categories yet. Add one above!</p>
+            {% endif %}
+        </section>
+    </div>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+
+</html>

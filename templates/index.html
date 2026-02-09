@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Note-Taking Web Application">
+    <title>📝 Note Taking App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>📝 Notes</h1>
+                <button id="theme-toggle" class="icon-btn" title="Toggle theme (Ctrl+T)">🌓</button>
+            </div>
+
+            <!-- User Info -->
+            <div class="user-info">
+                {% if user.avatar_url %}
+                <img src="{{ user.avatar_url }}" alt="Avatar" class="user-avatar">
+                {% else %}
+                <span class="user-avatar-placeholder">{{ user.display_name[0] | upper }}</span>
+                {% endif %}
+                <div class="user-details">
+                    <span class="user-name">{{ user.display_name }}</span>
+                    {% if user.is_guest %}
+                    <span class="guest-badge">Guest</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Search -->
+            <div class="search-box">
+                <form action="{{ url_for('index') }}" method="GET">
+                    <input type="text" name="q" id="search-input" placeholder="Search notes... (Ctrl+K)"
+                        value="{{ search_query }}" autocomplete="off">
+                    {% if category_filter %}
+                    <input type="hidden" name="category" value="{{ category_filter }}">
+                    {% endif %}
+                </form>
+            </div>
+
+            <!-- Categories Filter -->
+            <nav class="categories-nav">
+                <h3>Categories</h3>
+                <a href="{{ url_for('index') }}" class="category-link {% if not category_filter %}active{% endif %}">
+                    📋 All Notes
+                    <span class="count">{{ stats.active or 0 }}</span>
+                </a>
+                {% for cat in categories %}
+                <a href="{{ url_for('index', category=cat.id) }}"
+                    class="category-link {% if category_filter|string == cat.id|string %}active{% endif %}">
+                    <span class="color-dot" style="background: {{ cat.color }}"></span>
+                    {{ cat.name }}
+                </a>
+                {% endfor %}
+                <a href="{{ url_for('manage_categories') }}" class="category-link add-category">
+                    ➕ Manage Categories
+                </a>
+            </nav>
+
+            <!-- Quick Links -->
+            <nav class="quick-links">
+                <a href="{{ url_for('profile') }}">👤 Profile</a>
+                <a href="{{ url_for('index', archived='1') }}" class="{% if show_archived %}active{% endif %}">
+                    📦 Archived ({{ stats.archived or 0 }})
+                </a>
+                <a href="{{ url_for('export_notes', format='json') }}">📥 Export JSON</a>
+                <a href="{{ url_for('export_notes', format='txt') }}">📄 Export TXT</a>
+            </nav>
+
+            <!-- Logout -->
+            <div class="sidebar-footer">
+                {% if user.is_guest %}
+                <a href="{{ url_for('auth.cognito_login') }}" class="btn btn-small btn-primary">
+                    💾 Create Account
+                </a>
+                {% endif %}
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-small btn-secondary">
+                    🚪 Logout
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Guest Banner -->
+            {% if user.is_guest %}
+            <div class="guest-banner">
+                ⚠️ You're using guest mode. <a href="{{ url_for('auth.cognito_login') }}">Create an account</a> to save
+                your notes permanently!
+            </div>
+            {% endif %}
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            <!-- New Note Form -->
+            <section class="note-form-section">
+                <form action="{{ url_for('add_note') }}" method="POST" class="note-form">
+                    <input type="text" name="title" placeholder="Note title (optional)" class="note-title-input">
+                    <textarea name="content" id="note-content" placeholder="Write your note here... (Supports Markdown)"
+                        rows="4" required></textarea>
+                    <div class="form-actions">
+                        <select name="category_id" class="category-select">
+                            <option value="">No category</option>
+                            {% for cat in categories %}
+                            <option value="{{ cat.id }}" style="color: {{ cat.color }}">{{ cat.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-primary">
+                            💾 Save Note <span class="shortcut">(Ctrl+Enter)</span>
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- Stats Bar -->
+            <div class="stats-bar">
+                <span>📊 {{ stats.active or 0 }} notes</span>
+                <span>📌 {{ stats.pinned or 0 }} pinned</span>
+                <span>📦 {{ stats.archived or 0 }} archived</span>
+            </div>
+
+            <!-- Notes List -->
+            <section class="notes-section">
+                {% if notes %}
+                <div class="notes-grid">
+                    {% for note in notes %}
+                    <article class="note-card {% if note.is_pinned %}pinned{% endif %}">
+                        <div class="note-header">
+                            {% if note.is_pinned %}
+                            <span class="pin-indicator">📌</span>
+                            {% endif %}
+                            {% if note.category_name %}
+                            <span class="note-category" style="background: {{ note.category_color }}">
+                                {{ note.category_name }}
+                            </span>
+                            {% endif %}
+                            <span class="note-date">{{ note.updated_at.strftime('%b %d, %Y %H:%M') }}</span>
+                        </div>
+
+                        {% if note.title %}
+                        <h3 class="note-title">{{ note.title }}</h3>
+                        {% endif %}
+
+                        <div class="note-content markdown-body">
+                            {{ note.content_html|safe }}
+                        </div>
+
+                        <div class="note-actions">
+                            <button class="icon-btn edit-btn" data-note-id="{{ note.id }}" title="Edit">✏️</button>
+
+                            <form action="{{ url_for('toggle_pin', note_id=note.id) }}" method="POST"
+                                class="inline-form">
+                                <button type="submit" class="icon-btn"
+                                    title="{% if note.is_pinned %}Unpin{% else %}Pin{% endif %}">
+                                    {% if note.is_pinned %}📍{% else %}📌{% endif %}
+                                </button>
+                            </form>
+
+                            <form action="{{ url_for('toggle_share', note_id=note.id) }}" method="POST"
+                                class="inline-form">
+                                <button type="submit" class="icon-btn"
+                                    title="{% if note.is_public %}Stop sharing{% else %}Share{% endif %}">
+                                    {% if note.is_public %}🔗{% else %}🔒{% endif %}
+                                </button>
+                            </form>
+
+                            <form action="{{ url_for('toggle_archive', note_id=note.id) }}" method="POST"
+                                class="inline-form">
+                                <button type="submit" class="icon-btn"
+                                    title="{% if note.is_archived %}Restore{% else %}Archive{% endif %}">
+                                    {% if note.is_archived %}♻️{% else %}📦{% endif %}
+                                </button>
+                            </form>
+
+                            <form action="{{ url_for('delete_note', note_id=note.id) }}" method="POST"
+                                class="inline-form delete-form">
+                                <button type="submit" class="icon-btn delete-btn"
+                                    title="Delete permanently">🗑️</button>
+                            </form>
+                        </div>
+                    </article>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    {% if search_query %}
+                    <p>🔍 No notes found for "{{ search_query }}"</p>
+                    {% elif show_archived %}
+                    <p>📦 No archived notes</p>
+                    {% else %}
+                    <p>📝 No notes yet. Start writing!</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </section>
+        </main>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>✏️ Edit Note</h2>
+                <button class="modal-close" id="modal-close">&times;</button>
+            </div>
+            <form id="edit-form" method="POST">
+                <input type="text" name="title" id="edit-title" placeholder="Note title">
+                <textarea name="content" id="edit-content" rows="8" required></textarea>
+                <select name="category_id" id="edit-category" class="category-select">
+                    <option value="">No category</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.id }}">{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="modal-cancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary">💾 Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Keyboard Shortcuts Help -->
+    <div id="shortcuts-modal" class="modal">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h2>⌨️ Keyboard Shortcuts</h2>
+                <button class="modal-close shortcuts-close">&times;</button>
+            </div>
+            <ul class="shortcuts-list">
+                <li><kbd>Ctrl</kbd> + <kbd>K</kbd> - Focus search</li>
+                <li><kbd>Ctrl</kbd> + <kbd>Enter</kbd> - Save note</li>
+                <li><kbd>Ctrl</kbd> + <kbd>T</kbd> - Toggle theme</li>
+                <li><kbd>Esc</kbd> - Close modal</li>
+                <li><kbd>?</kbd> - Show shortcuts</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+
+</html>

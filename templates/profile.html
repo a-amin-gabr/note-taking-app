@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if is_setup %}Complete Your Profile{% else %}Profile{% endif %} | Note Taking App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body class="profile-page">
+    <div class="profile-container">
+        <div class="profile-card">
+            <div class="profile-header">
+                {% if is_setup %}
+                <h1>👋 Welcome! Let's set up your profile</h1>
+                <p>Tell us a bit about yourself</p>
+                {% else %}
+                <a href="{{ url_for('index') }}" class="back-link">← Back to Notes</a>
+                <h1>👤 Your Profile</h1>
+                {% endif %}
+            </div>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            <form action="{{ url_for('save_profile') }}" method="POST" class="profile-form">
+                <input type="hidden" name="is_setup" value="{{ 'true' if is_setup else 'false' }}">
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="first_name">First Name</label>
+                        <input type="text" id="first_name" name="first_name" 
+                               value="{{ user.first_name or '' }}" placeholder="John">
+                    </div>
+                    <div class="form-group">
+                        <label for="last_name">Last Name</label>
+                        <input type="text" id="last_name" name="last_name" 
+                               value="{{ user.last_name or '' }}" placeholder="Doe">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="display_name">Display Name <span class="required">*</span></label>
+                    <input type="text" id="display_name" name="display_name" 
+                           value="{{ user.display_name or '' }}" placeholder="johndoe" required>
+                    <span class="hint">This is how your name will appear in the app</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" value="{{ user.email or '' }}" disabled>
+                    <span class="hint">Managed by your authentication provider</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="bio">Bio</label>
+                    <textarea id="bio" name="bio" rows="3" 
+                              placeholder="Tell us a bit about yourself...">{{ user.bio or '' }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="timezone">Timezone</label>
+                    <select id="timezone" name="timezone">
+                        <option value="UTC" {% if user.timezone == 'UTC' %}selected{% endif %}>UTC</option>
+                        <option value="America/New_York" {% if user.timezone == 'America/New_York' %}selected{% endif %}>Eastern Time (US)</option>
+                        <option value="America/Chicago" {% if user.timezone == 'America/Chicago' %}selected{% endif %}>Central Time (US)</option>
+                        <option value="America/Denver" {% if user.timezone == 'America/Denver' %}selected{% endif %}>Mountain Time (US)</option>
+                        <option value="America/Los_Angeles" {% if user.timezone == 'America/Los_Angeles' %}selected{% endif %}>Pacific Time (US)</option>
+                        <option value="Europe/London" {% if user.timezone == 'Europe/London' %}selected{% endif %}>London</option>
+                        <option value="Europe/Paris" {% if user.timezone == 'Europe/Paris' %}selected{% endif %}>Paris / Berlin</option>
+                        <option value="Asia/Dubai" {% if user.timezone == 'Asia/Dubai' %}selected{% endif %}>Dubai</option>
+                        <option value="Asia/Tokyo" {% if user.timezone == 'Asia/Tokyo' %}selected{% endif %}>Tokyo</option>
+                        <option value="Australia/Sydney" {% if user.timezone == 'Australia/Sydney' %}selected{% endif %}>Sydney</option>
+                        <option value="Africa/Cairo" {% if user.timezone == 'Africa/Cairo' %}selected{% endif %}>Cairo</option>
+                    </select>
+                </div>
+
+                <div class="form-actions">
+                    {% if not is_setup %}
+                    <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
+                    {% endif %}
+                    <button type="submit" class="btn btn-primary btn-large">
+                        {% if is_setup %}
+                        🚀 Complete Setup
+                        {% else %}
+                        💾 Save Changes
+                        {% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+
+</html>

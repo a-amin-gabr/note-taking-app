@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ note.title or 'Shared Note' }} | Note Taking App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body class="shared-page">
+    <div class="shared-container">
+        <article class="shared-note">
+            <header class="shared-header">
+                <span class="shared-badge">🔗 Shared Note</span>
+                {% if note.category_name %}
+                <span class="note-category" style="background: {{ note.category_color }}">
+                    {{ note.category_name }}
+                </span>
+                {% endif %}
+            </header>
+
+            {% if note.title %}
+            <h1>{{ note.title }}</h1>
+            {% endif %}
+
+            <div class="note-meta">
+                <span>📅 Created: {{ note.created_at.strftime('%B %d, %Y at %H:%M') }}</span>
+            </div>
+
+            <div class="note-content markdown-body">
+                {{ note.content_html|safe }}
+            </div>
+
+            <footer class="shared-footer">
+                <p>📝 Created with Note Taking App</p>
+                <a href="{{ url_for('auth.login') }}" class="btn btn-primary">Create Your Own Notes</a>
+            </footer>
+        </article>
+    </div>
+</body>
+
+</html>

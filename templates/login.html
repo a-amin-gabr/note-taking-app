@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Note-Taking App - Login or continue as guest">
+    <title>Login | Note Taking App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body class="login-page">
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <h1>📝 Note Taking App</h1>
+                <p>Capture your thoughts, organize your life</p>
+            </div>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            <div class="login-options">
+                {% if cognito_enabled %}
+                <!-- Cognito Login -->
+                <a href="{{ url_for('auth.cognito_login') }}" class="btn btn-primary btn-large">
+                    🔐 Sign in with AWS Cognito
+                </a>
+
+                <div class="divider">
+                    <span>or</span>
+                </div>
+                {% endif %}
+
+                <!-- Guest Login -->
+                <form action="{{ url_for('auth.guest_login') }}" method="POST">
+                    <button type="submit" class="btn btn-secondary btn-large">
+                        👻 Continue as Guest
+                    </button>
+                </form>
+
+                <p class="guest-note">
+                    Guest notes are temporary. Create an account to save permanently!
+                </p>
+            </div>
+
+            <div class="features-preview">
+                <h3>✨ Features</h3>
+                <ul>
+                    <li>📁 Organize with categories</li>
+                    <li>📌 Pin important notes</li>
+                    <li>🔍 Powerful search</li>
+                    <li>📝 Markdown formatting</li>
+                    <li>🌓 Dark & light themes</li>
+                    <li>📤 Export your notes</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+
+</html>
