@@ -1,39 +1,56 @@
 /* ========================================
-   Note Taking App - Enhanced CSS
-   Supports Dark/Light themes
+   Note Taking App - Premium UI CSS
+   Supports Dark/Light themes with Glassmorphism
    ======================================== */
 
 /* CSS Variables - Dark Theme (default) */
 :root,
 [data-theme="dark"] {
-    --bg-primary: #0f172a;
-    --bg-secondary: #1e293b;
-    --bg-card: rgba(255, 255, 255, 0.05);
-    --bg-hover: rgba(255, 255, 255, 0.1);
-    --border-color: rgba(255, 255, 255, 0.1);
-    --text-primary: #f8fafc;
+    --bg-primary: #0a0a0f;
+    --bg-secondary: #12121a;
+    --bg-tertiary: #1a1a24;
+    --bg-card: rgba(255, 255, 255, 0.03);
+    --bg-card-hover: rgba(255, 255, 255, 0.06);
+    --bg-hover: rgba(255, 255, 255, 0.08);
+    --border-color: rgba(255, 255, 255, 0.08);
+    --border-glow: rgba(99, 102, 241, 0.3);
+    --text-primary: #f1f5f9;
     --text-secondary: #94a3b8;
     --text-muted: #64748b;
-    --accent-primary: #6366f1;
-    --accent-secondary: #8b5cf6;
-    --success: #10b981;
-    --warning: #f59e0b;
-    --error: #ef4444;
-    --info: #3b82f6;
-    --shadow: rgba(0, 0, 0, 0.3);
+    --accent-primary: #818cf8;
+    --accent-secondary: #a78bfa;
+    --accent-tertiary: #c084fc;
+    --success: #34d399;
+    --warning: #fbbf24;
+    --error: #f87171;
+    --info: #60a5fa;
+    --shadow: rgba(0, 0, 0, 0.5);
+    --shadow-glow: rgba(129, 140, 248, 0.15);
+    --glass-bg: rgba(18, 18, 26, 0.8);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-blur: blur(20px);
+    --gradient-accent: linear-gradient(135deg, #818cf8 0%, #a78bfa 50%, #c084fc 100%);
+    --gradient-bg: linear-gradient(135deg, #0a0a0f 0%, #12121a 50%, #1a1a24 100%);
 }
 
 /* Light Theme */
 [data-theme="light"] {
     --bg-primary: #f8fafc;
     --bg-secondary: #ffffff;
-    --bg-card: rgba(0, 0, 0, 0.02);
-    --bg-hover: rgba(0, 0, 0, 0.05);
-    --border-color: rgba(0, 0, 0, 0.1);
-    --text-primary: #1e293b;
+    --bg-tertiary: #f1f5f9;
+    --bg-card: rgba(255, 255, 255, 0.9);
+    --bg-card-hover: rgba(255, 255, 255, 1);
+    --bg-hover: rgba(0, 0, 0, 0.04);
+    --border-color: rgba(0, 0, 0, 0.08);
+    --border-glow: rgba(99, 102, 241, 0.3);
+    --text-primary: #0f172a;
     --text-secondary: #475569;
     --text-muted: #94a3b8;
-    --shadow: rgba(0, 0, 0, 0.1);
+    --shadow: rgba(0, 0, 0, 0.08);
+    --shadow-glow: rgba(129, 140, 248, 0.2);
+    --glass-bg: rgba(255, 255, 255, 0.85);
+    --glass-border: rgba(0, 0, 0, 0.08);
+    --gradient-bg: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
 }
 
 /* Reset & Base */
@@ -46,12 +63,14 @@
 }
 
 body {
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-    background: var(--bg-primary);
+    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--gradient-bg);
     color: var(--text-primary);
     line-height: 1.6;
     min-height: 100vh;
-    transition: background 0.3s ease, color 0.3s ease;
+    transition: background 0.4s ease, color 0.3s ease;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 a {
@@ -75,14 +94,17 @@ a:hover {
 /* Sidebar */
 .sidebar {
     width: 280px;
-    background: var(--bg-secondary);
-    border-right: 1px solid var(--border-color);
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-right: 1px solid var(--glass-border);
     display: flex;
     flex-direction: column;
     padding: 1.5rem;
     position: fixed;
     height: 100vh;
     overflow-y: auto;
+    z-index: 100;
 }
 
 .sidebar-header {
@@ -94,10 +116,12 @@ a:hover {
 
 .sidebar-header h1 {
     font-size: 1.5rem;
-    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    font-weight: 700;
+    background: var(--gradient-accent);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    letter-spacing: -0.02em;
 }
 
 .user-info {
@@ -282,46 +306,72 @@ a:hover {
     gap: 0.5rem;
     padding: 0.75rem 1.5rem;
     border: none;
-    border-radius: 8px;
-    font-size: 1rem;
+    border-radius: 10px;
+    font-size: 0.95rem;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     text-decoration: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.btn:hover::before {
+    left: 100%;
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    background: var(--gradient-accent);
     color: white;
+    box-shadow: 0 4px 15px var(--shadow-glow);
 }
 
 .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px var(--shadow-glow), 0 0 40px var(--shadow-glow);
     text-decoration: none;
     color: white;
+}
+
+.btn-primary:active {
+    transform: translateY(-1px);
 }
 
 .btn-secondary {
     background: var(--bg-card);
     color: var(--text-primary);
     border: 1px solid var(--border-color);
+    backdrop-filter: blur(10px);
 }
 
 .btn-secondary:hover {
-    background: var(--bg-hover);
+    background: var(--bg-card-hover);
+    border-color: var(--accent-primary);
     text-decoration: none;
 }
 
 .btn-small {
     padding: 0.5rem 1rem;
     font-size: 0.85rem;
+    border-radius: 8px;
 }
 
 .btn-large {
     padding: 1rem 2rem;
     font-size: 1.1rem;
     width: 100%;
+    border-radius: 12px;
 }
 
 .icon-btn {
@@ -329,14 +379,16 @@ a:hover {
     border: none;
     font-size: 1.2rem;
     cursor: pointer;
-    padding: 0.25rem;
-    opacity: 0.6;
+    padding: 0.35rem;
+    border-radius: 8px;
+    opacity: 0.7;
     transition: all 0.2s ease;
 }
 
 .icon-btn:hover {
     opacity: 1;
-    transform: scale(1.1);
+    transform: scale(1.15);
+    background: var(--bg-hover);
 }
 
 /* Flash Messages */
@@ -346,40 +398,138 @@ a:hover {
 
 .flash {
     padding: 1rem 1.25rem;
-    border-radius: 8px;
+    border-radius: 12px;
     margin-bottom: 0.5rem;
     font-weight: 500;
-    animation: slideIn 0.3s ease;
+    animation: slideInDown 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(10px);
 }
 
 .flash.success {
-    background: rgba(16, 185, 129, 0.15);
+    background: rgba(52, 211, 153, 0.15);
     border: 1px solid var(--success);
     color: var(--success);
 }
 
 .flash.error {
-    background: rgba(239, 68, 68, 0.15);
+    background: rgba(248, 113, 113, 0.15);
     border: 1px solid var(--error);
     color: var(--error);
 }
 
 .flash.info {
-    background: rgba(59, 130, 246, 0.15);
+    background: rgba(96, 165, 250, 0.15);
     border: 1px solid var(--info);
     color: var(--info);
 }
 
-@keyframes slideIn {
+/* ========================================
+   Animations
+   ======================================== */
+
+@keyframes slideInDown {
     from {
         opacity: 0;
-        transform: translateY(-10px);
+        transform: translateY(-20px);
     }
 
     to {
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+@keyframes glow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 20px var(--shadow-glow);
+    }
+
+    50% {
+        box-shadow: 0 0 40px var(--shadow-glow);
+    }
+}
+
+/* Apply animations */
+.notes-grid {
+    animation: fadeIn 0.5s ease;
+}
+
+.note-card {
+    animation: slideUp 0.4s ease backwards;
+}
+
+.note-card:nth-child(1) {
+    animation-delay: 0.05s;
+}
+
+.note-card:nth-child(2) {
+    animation-delay: 0.1s;
+}
+
+.note-card:nth-child(3) {
+    animation-delay: 0.15s;
+}
+
+.note-card:nth-child(4) {
+    animation-delay: 0.2s;
+}
+
+.note-card:nth-child(5) {
+    animation-delay: 0.25s;
+}
+
+.note-card:nth-child(6) {
+    animation-delay: 0.3s;
+}
+
+.pin-indicator {
+    animation: pulse 2s ease-in-out infinite;
 }
 
 /* Guest Banner */
@@ -485,28 +635,54 @@ a:hover {
 
 .notes-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1.25rem;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
 }
 
 .note-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 1.25rem;
-    transition: all 0.2s ease;
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+.note-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--gradient-accent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
 .note-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px var(--shadow);
+    transform: translateY(-6px) scale(1.01);
+    box-shadow: 0 20px 40px var(--shadow), 0 0 60px var(--shadow-glow);
+    border-color: var(--border-glow);
+}
+
+.note-card:hover::before {
+    opacity: 1;
 }
 
 .note-card.pinned {
     border-color: var(--warning);
-    box-shadow: 0 0 0 1px var(--warning);
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.15);
+}
+
+.note-card.pinned::before {
+    background: linear-gradient(90deg, var(--warning), var(--accent-primary));
+    opacity: 1;
 }
 
 .note-header {
@@ -712,20 +888,55 @@ a:hover {
     align-items: center;
     justify-content: center;
     min-height: 100vh;
-    background: linear-gradient(135deg, var(--bg-primary), var(--bg-secondary));
+    background: var(--gradient-bg);
+    position: relative;
+    overflow: hidden;
+}
+
+.login-page::before {
+    content: '';
+    position: absolute;
+    width: 500px;
+    height: 500px;
+    background: var(--gradient-accent);
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.15;
+    top: -200px;
+    right: -200px;
+    animation: glow 4s ease-in-out infinite;
+}
+
+.login-page::after {
+    content: '';
+    position: absolute;
+    width: 400px;
+    height: 400px;
+    background: linear-gradient(135deg, var(--accent-secondary), var(--accent-tertiary));
+    border-radius: 50%;
+    filter: blur(100px);
+    opacity: 0.1;
+    bottom: -150px;
+    left: -150px;
 }
 
 .login-container {
     width: 100%;
     max-width: 450px;
     padding: 1rem;
+    position: relative;
+    z-index: 1;
+    animation: slideUp 0.6s ease;
 }
 
 .login-card {
-    background: var(--bg-secondary);
-    border-radius: 20px;
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
     padding: 2.5rem;
-    box-shadow: 0 20px 60px var(--shadow);
+    box-shadow: 0 25px 80px var(--shadow);
 }
 
 .login-header {
@@ -735,11 +946,17 @@ a:hover {
 
 .login-header h1 {
     font-size: 2rem;
+    font-weight: 700;
     margin-bottom: 0.5rem;
+    background: var(--gradient-accent);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .login-header p {
     color: var(--text-secondary);
+    font-size: 1rem;
 }
 
 .login-options {
@@ -754,6 +971,7 @@ a:hover {
     align-items: center;
     gap: 1rem;
     color: var(--text-muted);
+    font-size: 0.9rem;
 }
 
 .divider::before,
@@ -772,13 +990,15 @@ a:hover {
 
 .features-preview {
     background: var(--bg-card);
-    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
     padding: 1.5rem;
 }
 
 .features-preview h3 {
     margin-bottom: 1rem;
     font-size: 1rem;
+    font-weight: 600;
 }
 
 .features-preview ul {
