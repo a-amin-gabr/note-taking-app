@@ -13,7 +13,53 @@ document.addEventListener('DOMContentLoaded', () => {
     initGreetingClock();
     initWordCount();
     initImportHandler();
+    initEditTabs();
 });
+
+// ... existing code ...
+
+function initEditTabs() {
+    const tabRaw = document.getElementById('tab-raw');
+    const tabPreview = document.getElementById('tab-preview');
+    const noteContent = document.getElementById('edit-content');
+    const previewDiv = document.getElementById('edit-preview');
+
+    if (!tabRaw || !tabPreview) return;
+
+    tabRaw.addEventListener('click', () => {
+        tabRaw.classList.add('active');
+        tabPreview.classList.remove('active');
+        noteContent.classList.remove('hidden');
+        previewDiv.classList.add('hidden');
+        noteContent.focus();
+    });
+
+    tabPreview.addEventListener('click', async () => {
+        tabPreview.classList.add('active');
+        tabRaw.classList.remove('active');
+        noteContent.classList.add('hidden');
+        previewDiv.classList.remove('hidden');
+
+        // Show loading state
+        previewDiv.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-muted);">Loading preview...</div>';
+
+        try {
+            const response = await fetch('/api/preview', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: noteContent.value })
+            });
+
+            if (!response.ok) throw new Error('Preview failed');
+
+            const data = await response.json();
+            previewDiv.innerHTML = data.html;
+        } catch (error) {
+            console.error('Preview error:', error);
+            previewDiv.innerHTML = '<div style="color: var(--error); padding: 1rem;">Failed to load preview</div>';
+        }
+    });
+}
 
 // ============================================
 // Theme Toggle

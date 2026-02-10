@@ -511,7 +511,7 @@
     </div>
 
     <!-- Edit Modal -->
-    <div id="edit-modal" class="modal">
+    <div id="edit-modal" class="modal modal-large">
         <div class="modal-content">
             <div class="modal-header">
                 <h2>
@@ -528,9 +528,20 @@
                     </svg>
                 </button>
             </div>
+
+            <div class="modal-tabs">
+                <button type="button" class="tab-btn active" id="tab-raw">Raw</button>
+                <button type="button" class="tab-btn" id="tab-preview">Preview</button>
+            </div>
+
             <form id="edit-form" method="POST">
                 <input type="text" name="title" id="edit-title" placeholder="Note title">
-                <textarea name="content" id="edit-content" rows="8" required></textarea>
+
+                <div class="edit-mode-container">
+                    <textarea name="content" id="edit-content" rows="8" required></textarea>
+                    <div id="edit-preview" class="hidden"></div>
+                </div>
+
                 <select name="category_id" id="edit-category" class="category-select">
                     <option value="">No category</option>
                     {% for cat in categories %}

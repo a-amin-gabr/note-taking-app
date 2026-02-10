@@ -893,6 +893,18 @@ def api_stats():
     finally:
         cursor.close()
         connection.close()
+
+
+@app.route('/api/preview', methods=['POST'])
+@login_required
+def api_preview_markdown():
+    """Render markdown for preview."""
+    data = request.get_json()
+    content = data.get('content', '')
+    html = render_markdown(content)
+    return jsonify({'html': html})
+
+
 @app.route('/api/note/<int:note_id>')
 @login_required
 def api_get_note(note_id):
