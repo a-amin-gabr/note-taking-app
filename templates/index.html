@@ -73,11 +73,11 @@
                     {% if user.is_guest %}
                     <span class="guest-badge">Guest</span>
                     {% endif %}
+                    {% if user.bio %}
+                    <p class="user-bio" title="{{ user.bio }}">{{ user.bio }}</p>
+                    {% endif %}
                 </div>
             </div>
-            {% if user.bio %}
-            <p class="user-bio" title="{{ user.bio }}">{{ user.bio }}</p>
-            {% endif %}
 
             <!-- Search -->
             <div class="search-box">
