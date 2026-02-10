@@ -5,7 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% if is_setup %}Complete Your Profile{% else %}Profile{% endif %} | Note Taking App</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='icons.css') }}">
 </head>
 
 <body class="profile-page">
@@ -13,11 +17,29 @@
         <div class="profile-card">
             <div class="profile-header">
                 {% if is_setup %}
-                <h1>👋 Welcome! Let's set up your profile</h1>
+                <h1>
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path d="M18.36 6.64a9 9 0 1 1-12.73 0" />
+                        <line x1="12" x2="12" y1="2" y2="12" />
+                    </svg>
+                    Welcome! Let's set up your profile
+                </h1>
                 <p>Tell us a bit about yourself</p>
                 {% else %}
-                <a href="{{ url_for('index') }}" class="back-link">← Back to Notes</a>
-                <h1>👤 Your Profile</h1>
+                <a href="{{ url_for('index') }}" class="back-link">
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path d="m12 19-7-7 7-7" />
+                        <path d="M19 12H5" />
+                    </svg>
+                    Back to Notes
+                </a>
+                <h1>
+                    <svg class="icon" viewBox="0 0 24 24">
+                        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                    </svg>
+                    Your Profile
+                </h1>
                 {% endif %}
             </div>
 
@@ -32,26 +54,52 @@
             {% endif %}
             {% endwith %}
 
+            <!-- Avatar Upload Section -->
+            <div class="avatar-upload-section">
+                <div class="avatar-preview" id="avatar-preview">
+                    {% if user.avatar_url %}
+                    <img src="{{ user.avatar_url }}" alt="Avatar" id="avatar-image">
+                    {% else %}
+                    <div class="avatar-placeholder-large" id="avatar-placeholder">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
+                        </svg>
+                    </div>
+                    {% endif %}
+                    <label class="avatar-overlay" for="avatar-input">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path
+                                d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                            <circle cx="12" cy="13" r="4" />
+                        </svg>
+                        <span>Change Photo</span>
+                    </label>
+                </div>
+                <input type="file" id="avatar-input" accept="image/*" class="hidden-input">
+                <p class="avatar-hint">Click to upload • Max 2MB • Compressed automatically</p>
+            </div>
+
             <form action="{{ url_for('save_profile') }}" method="POST" class="profile-form">
                 <input type="hidden" name="is_setup" value="{{ 'true' if is_setup else 'false' }}">
 
                 <div class="form-row">
                     <div class="form-group">
                         <label for="first_name">First Name</label>
-                        <input type="text" id="first_name" name="first_name" 
-                               value="{{ user.first_name or '' }}" placeholder="John">
+                        <input type="text" id="first_name" name="first_name" value="{{ user.first_name or '' }}"
+                            placeholder="John">
                     </div>
                     <div class="form-group">
                         <label for="last_name">Last Name</label>
-                        <input type="text" id="last_name" name="last_name" 
-                               value="{{ user.last_name or '' }}" placeholder="Doe">
+                        <input type="text" id="last_name" name="last_name" value="{{ user.last_name or '' }}"
+                            placeholder="Doe">
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label for="display_name">Display Name <span class="required">*</span></label>
-                    <input type="text" id="display_name" name="display_name" 
-                           value="{{ user.display_name or '' }}" placeholder="johndoe" required>
+                    <input type="text" id="display_name" name="display_name" value="{{ user.display_name or '' }}"
+                        placeholder="johndoe" required>
                     <span class="hint">This is how your name will appear in the app</span>
                 </div>
 
@@ -63,24 +111,108 @@
 
                 <div class="form-group">
                     <label for="bio">Bio</label>
-                    <textarea id="bio" name="bio" rows="3" 
-                              placeholder="Tell us a bit about yourself...">{{ user.bio or '' }}</textarea>
+                    <textarea id="bio" name="bio" rows="3"
+                        placeholder="Tell us a bit about yourself...">{{ user.bio or '' }}</textarea>
+                    <span class="hint">Shown on your profile in the sidebar</span>
                 </div>
 
                 <div class="form-group">
                     <label for="timezone">Timezone</label>
                     <select id="timezone" name="timezone">
-                        <option value="UTC" {% if user.timezone == 'UTC' %}selected{% endif %}>UTC</option>
-                        <option value="America/New_York" {% if user.timezone == 'America/New_York' %}selected{% endif %}>Eastern Time (US)</option>
-                        <option value="America/Chicago" {% if user.timezone == 'America/Chicago' %}selected{% endif %}>Central Time (US)</option>
-                        <option value="America/Denver" {% if user.timezone == 'America/Denver' %}selected{% endif %}>Mountain Time (US)</option>
-                        <option value="America/Los_Angeles" {% if user.timezone == 'America/Los_Angeles' %}selected{% endif %}>Pacific Time (US)</option>
-                        <option value="Europe/London" {% if user.timezone == 'Europe/London' %}selected{% endif %}>London</option>
-                        <option value="Europe/Paris" {% if user.timezone == 'Europe/Paris' %}selected{% endif %}>Paris / Berlin</option>
-                        <option value="Asia/Dubai" {% if user.timezone == 'Asia/Dubai' %}selected{% endif %}>Dubai</option>
-                        <option value="Asia/Tokyo" {% if user.timezone == 'Asia/Tokyo' %}selected{% endif %}>Tokyo</option>
-                        <option value="Australia/Sydney" {% if user.timezone == 'Australia/Sydney' %}selected{% endif %}>Sydney</option>
-                        <option value="Africa/Cairo" {% if user.timezone == 'Africa/Cairo' %}selected{% endif %}>Cairo</option>
+                        <optgroup label="Americas">
+                            <option value="America/New_York" {% if user.timezone=='America/New_York' %}selected{% endif
+                                %}>Eastern Time (US)</option>
+                            <option value="America/Chicago" {% if user.timezone=='America/Chicago' %}selected{% endif
+                                %}>Central Time (US)</option>
+                            <option value="America/Denver" {% if user.timezone=='America/Denver' %}selected{% endif %}>
+                                Mountain Time (US)</option>
+                            <option value="America/Los_Angeles" {% if user.timezone=='America/Los_Angeles' %}selected{%
+                                endif %}>Pacific Time (US)</option>
+                            <option value="America/Anchorage" {% if user.timezone=='America/Anchorage' %}selected{%
+                                endif %}>Alaska</option>
+                            <option value="Pacific/Honolulu" {% if user.timezone=='Pacific/Honolulu' %}selected{% endif
+                                %}>Hawaii</option>
+                            <option value="America/Sao_Paulo" {% if user.timezone=='America/Sao_Paulo' %}selected{%
+                                endif %}>São Paulo</option>
+                            <option value="America/Argentina/Buenos_Aires" {% if
+                                user.timezone=='America/Argentina/Buenos_Aires' %}selected{% endif %}>Buenos Aires
+                            </option>
+                            <option value="America/Bogota" {% if user.timezone=='America/Bogota' %}selected{% endif %}>
+                                Bogotá</option>
+                            <option value="America/Mexico_City" {% if user.timezone=='America/Mexico_City' %}selected{%
+                                endif %}>Mexico City</option>
+                            <option value="America/Toronto" {% if user.timezone=='America/Toronto' %}selected{% endif
+                                %}>Toronto</option>
+                        </optgroup>
+                        <optgroup label="Europe">
+                            <option value="Europe/London" {% if user.timezone=='Europe/London' %}selected{% endif %}>
+                                London (GMT)</option>
+                            <option value="Europe/Paris" {% if user.timezone=='Europe/Paris' %}selected{% endif %}>Paris
+                                / Berlin (CET)</option>
+                            <option value="Europe/Berlin" {% if user.timezone=='Europe/Berlin' %}selected{% endif %}>
+                                Berlin</option>
+                            <option value="Europe/Rome" {% if user.timezone=='Europe/Rome' %}selected{% endif %}>Rome
+                            </option>
+                            <option value="Europe/Madrid" {% if user.timezone=='Europe/Madrid' %}selected{% endif %}>
+                                Madrid</option>
+                            <option value="Europe/Moscow" {% if user.timezone=='Europe/Moscow' %}selected{% endif %}>
+                                Moscow</option>
+                            <option value="Europe/Istanbul" {% if user.timezone=='Europe/Istanbul' %}selected{% endif
+                                %}>Istanbul</option>
+                            <option value="Europe/Athens" {% if user.timezone=='Europe/Athens' %}selected{% endif %}>
+                                Athens</option>
+                            <option value="Europe/Warsaw" {% if user.timezone=='Europe/Warsaw' %}selected{% endif %}>
+                                Warsaw</option>
+                        </optgroup>
+                        <optgroup label="Africa">
+                            <option value="Africa/Cairo" {% if user.timezone=='Africa/Cairo' %}selected{% endif %}>Cairo
+                                (EET)</option>
+                            <option value="Africa/Lagos" {% if user.timezone=='Africa/Lagos' %}selected{% endif %}>Lagos
+                                (WAT)</option>
+                            <option value="Africa/Nairobi" {% if user.timezone=='Africa/Nairobi' %}selected{% endif %}>
+                                Nairobi (EAT)</option>
+                            <option value="Africa/Johannesburg" {% if user.timezone=='Africa/Johannesburg' %}selected{%
+                                endif %}>Johannesburg</option>
+                            <option value="Africa/Casablanca" {% if user.timezone=='Africa/Casablanca' %}selected{%
+                                endif %}>Casablanca</option>
+                        </optgroup>
+                        <optgroup label="Asia">
+                            <option value="Asia/Dubai" {% if user.timezone=='Asia/Dubai' %}selected{% endif %}>Dubai
+                                (GST)</option>
+                            <option value="Asia/Kolkata" {% if user.timezone=='Asia/Kolkata' %}selected{% endif %}>
+                                Kolkata (IST)</option>
+                            <option value="Asia/Bangkok" {% if user.timezone=='Asia/Bangkok' %}selected{% endif %}>
+                                Bangkok (ICT)</option>
+                            <option value="Asia/Singapore" {% if user.timezone=='Asia/Singapore' %}selected{% endif %}>
+                                Singapore</option>
+                            <option value="Asia/Shanghai" {% if user.timezone=='Asia/Shanghai' %}selected{% endif %}>
+                                Shanghai (CST)</option>
+                            <option value="Asia/Seoul" {% if user.timezone=='Asia/Seoul' %}selected{% endif %}>Seoul
+                                (KST)</option>
+                            <option value="Asia/Tokyo" {% if user.timezone=='Asia/Tokyo' %}selected{% endif %}>Tokyo
+                                (JST)</option>
+                            <option value="Asia/Jakarta" {% if user.timezone=='Asia/Jakarta' %}selected{% endif %}>
+                                Jakarta</option>
+                            <option value="Asia/Riyadh" {% if user.timezone=='Asia/Riyadh' %}selected{% endif %}>Riyadh
+                            </option>
+                            <option value="Asia/Karachi" {% if user.timezone=='Asia/Karachi' %}selected{% endif %}>
+                                Karachi</option>
+                        </optgroup>
+                        <optgroup label="Pacific / Oceania">
+                            <option value="Australia/Sydney" {% if user.timezone=='Australia/Sydney' %}selected{% endif
+                                %}>Sydney (AEST)</option>
+                            <option value="Australia/Melbourne" {% if user.timezone=='Australia/Melbourne' %}selected{%
+                                endif %}>Melbourne</option>
+                            <option value="Australia/Perth" {% if user.timezone=='Australia/Perth' %}selected{% endif
+                                %}>Perth</option>
+                            <option value="Pacific/Auckland" {% if user.timezone=='Pacific/Auckland' %}selected{% endif
+                                %}>Auckland (NZST)</option>
+                            <option value="Pacific/Fiji" {% if user.timezone=='Pacific/Fiji' %}selected{% endif %}>Fiji
+                            </option>
+                        </optgroup>
+                        <optgroup label="Other">
+                            <option value="UTC" {% if user.timezone=='UTC' %}selected{% endif %}>UTC</option>
+                        </optgroup>
                     </select>
                 </div>
 
@@ -90,9 +222,18 @@
                     {% endif %}
                     <button type="submit" class="btn btn-primary btn-large">
                         {% if is_setup %}
-                        🚀 Complete Setup
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path d="M18.36 6.64a9 9 0 1 1-12.73 0" />
+                            <line x1="12" x2="12" y1="2" y2="12" />
+                        </svg>
+                        Complete Setup
                         {% else %}
-                        💾 Save Changes
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                            <polyline points="17 21 17 13 7 13 7 21" />
+                            <polyline points="7 3 7 8 15 8" />
+                        </svg>
+                        Save Changes
                         {% endif %}
                     </button>
                 </div>
@@ -101,6 +242,87 @@
     </div>
 
     <script src="{{ url_for('static', filename='app.js') }}"></script>
+    <script>
+        // Avatar upload with client-side compression
+        (function () {
+            const input = document.getElementById('avatar-input');
+            const preview = document.getElementById('avatar-preview');
+            if (!input) return;
+
+            input.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                // Validate type
+                if (!file.type.startsWith('image/')) {
+                    alert('Please select an image file.');
+                    return;
+                }
+
+                // Compress and resize using Canvas
+                const compressed = await compressImage(file, 256, 0.85);
+
+                // Show preview
+                const existingImg = preview.querySelector('img');
+                const placeholder = preview.querySelector('.avatar-placeholder-large');
+                if (existingImg) {
+                    existingImg.src = compressed;
+                } else {
+                    if (placeholder) placeholder.style.display = 'none';
+                    const img = document.createElement('img');
+                    img.src = compressed;
+                    img.alt = 'Avatar';
+                    img.id = 'avatar-image';
+                    preview.insertBefore(img, preview.firstChild);
+                }
+
+                // Upload to server
+                try {
+                    const res = await fetch('{{ url_for("upload_avatar") }}', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ image: compressed })
+                    });
+                    const data = await res.json();
+                    if (data.url) {
+                        // Success feedback
+                        preview.classList.add('upload-success');
+                        setTimeout(() => preview.classList.remove('upload-success'), 2000);
+                    }
+                } catch (err) {
+                    console.error('Upload failed:', err);
+                }
+            });
+
+            function compressImage(file, maxSize, quality) {
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            let w = img.width, h = img.height;
+
+                            // Scale down to maxSize
+                            if (w > h) {
+                                if (w > maxSize) { h = Math.round(h * maxSize / w); w = maxSize; }
+                            } else {
+                                if (h > maxSize) { w = Math.round(w * maxSize / h); h = maxSize; }
+                            }
+
+                            canvas.width = w;
+                            canvas.height = h;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, w, h);
+                            resolve(canvas.toDataURL('image/jpeg', quality));
+                        };
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+        })();
+    </script>
 </body>
 
 </html>

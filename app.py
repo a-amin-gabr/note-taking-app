@@ -1,10 +1,14 @@
 """
 Note-Taking App - Enhanced Flask Application
-Features: Categories, Search, Pin, Archive, Markdown, Export, Attachments
+Features: Categories, Search, Pin, Archive, Markdown, Export, Import, Avatars, S3
 """
 import os
+import re
+import uuid
+import base64
 import secrets
 import json
+from io import BytesIO
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, Response
 from dotenv import load_dotenv
@@ -16,6 +20,52 @@ import bleach
 load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
+
+# Upload configuration
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024  # 2MB max
+ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+
+# AWS S3 configuration (optional)
+S3_BUCKET = os.getenv('S3_BUCKET', '')
+S3_REGION = os.getenv('S3_REGION', os.getenv('AWS_REGION', 'us-east-1'))
+S3_ENABLED = False
+s3_client = None
+
+try:
+    import boto3
+    if S3_BUCKET:
+        s3_client = boto3.client('s3', region_name=S3_REGION)
+        S3_ENABLED = True
+        print(f"\u2705 S3 enabled: bucket={S3_BUCKET}")
+except ImportError:
+    pass
+except Exception as e:
+    print(f"\u26a0\ufe0f S3 init failed (falling back to local): {e}")
+
+
+def upload_file_to_storage(file_data, filename, content_type='image/jpeg'):
+    """Upload file to S3 if available, otherwise save locally. Returns URL."""
+    if S3_ENABLED and s3_client:
+        try:
+            key = f"avatars/{filename}"
+            s3_client.put_object(
+                Bucket=S3_BUCKET,
+                Key=key,
+                Body=file_data,
+                ContentType=content_type
+            )
+            return url_for('get_s3_avatar', filename=filename)
+        except Exception as e:
+            print(f"S3 upload failed, falling back to local: {e}")
+    
+    # Local fallback
+    filepath = os.path.join(UPLOAD_FOLDER, filename)
+    with open(filepath, 'wb') as f:
+        f.write(file_data)
+    return f"/static/uploads/{filename}"
 # Import and register auth blueprint
 from auth import auth_bp, login_required, get_current_user
 app.register_blueprint(auth_bp)
@@ -28,8 +78,17 @@ DB_CONFIG = {
     'port': int(os.getenv('DB_PORT', 3306))
 }
 # Allowed HTML tags for markdown
-ALLOWED_TAGS = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'em', 'ul', 'ol', 'li', 'code', 'pre', 'blockquote', 'a', 'br']
-ALLOWED_ATTRS = {'a': ['href', 'title']}
+ALLOWED_TAGS = [
+    'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'em', 'ul', 'ol', 'li', 
+    'code', 'pre', 'blockquote', 'a', 'br', 'hr',
+    'table', 'thead', 'tbody', 'tr', 'th', 'td', 'img',
+    'del', 'ins', 'sup', 'sub', 'mark'
+]
+ALLOWED_ATTRS = {
+    'a': ['href', 'title'],
+    'img': ['src', 'alt', 'title', 'width', 'height'],
+    '*': ['class']
+}
 def get_db_connection():
     """Create and return a database connection."""
     try:
@@ -105,7 +164,12 @@ def init_db():
         connection.close()
 def render_markdown(text):
     """Convert markdown to sanitized HTML."""
-    html = markdown.markdown(text, extensions=['fenced_code', 'tables'])
+    html = markdown.markdown(text, extensions=[
+        'extra',        # Tables, fenced code, footnotes, attrib, def types
+        'nl2br',        # Newlines to <br>
+        'sane_lists',   # Better list handling
+        'smarty'        # Smart quotes
+    ])
     return bleach.clean(html, tags=ALLOWED_TAGS, attributes=ALLOWED_ATTRS)
 # =============================================================================
 # MAIN ROUTES
@@ -262,6 +326,97 @@ def save_profile():
         return redirect(url_for('index'))
     
     return redirect(url_for('profile'))
+
+
+@app.route('/profile/avatar', methods=['POST'])
+@login_required
+def upload_avatar():
+    """Upload and save user avatar (accepts base64 or file upload)."""
+    user_id = session['user_id']
+    avatar_url = None
+
+    # Handle base64 upload (from client-side compression)
+    if request.is_json:
+        data = request.get_json()
+        image_data = data.get('image', '')
+        if not image_data:
+            return jsonify({'error': 'No image data'}), 400
+
+        # Parse data URI
+        match = re.match(r'data:image/(\w+);base64,(.*)', image_data)
+        if not match:
+            return jsonify({'error': 'Invalid image format'}), 400
+
+        ext = match.group(1)
+        if ext == 'jpeg':
+            ext = 'jpg'
+        raw = base64.b64decode(match.group(2))
+
+        filename = f"{user_id}_{uuid.uuid4().hex[:8]}.{ext}"
+        avatar_url = upload_file_to_storage(raw, filename, f'image/{ext}')
+
+    # Handle multipart file upload
+    elif 'avatar' in request.files:
+        file = request.files['avatar']
+        if file.filename:
+            ext = file.filename.rsplit('.', 1)[-1].lower()
+            if ext not in ALLOWED_IMAGE_EXTENSIONS:
+                flash('Invalid file type. Use PNG, JPG, GIF, or WebP.', 'error')
+                return redirect(url_for('profile'))
+
+            filename = f"{user_id}_{uuid.uuid4().hex[:8]}.{ext}"
+            raw = file.read()
+            avatar_url = upload_file_to_storage(raw, filename, file.content_type)
+
+    if not avatar_url:
+        flash('No image provided.', 'error')
+        return redirect(url_for('profile'))
+
+    # Save to database
+    connection = get_db_connection()
+    if connection:
+        try:
+            cursor = connection.cursor()
+            cursor.execute('UPDATE users SET avatar_url = %s WHERE id = %s', (avatar_url, user_id))
+            connection.commit()
+            if request.is_json:
+                return jsonify({'url': avatar_url, 'message': 'Avatar updated!'})
+            flash('Avatar updated!', 'success')
+        except Error as e:
+            if request.is_json:
+                return jsonify({'error': str(e)}), 500
+            flash(f'Error saving avatar: {e}', 'error')
+        finally:
+            cursor.close()
+            connection.close()
+
+    return redirect(url_for('profile'))
+
+
+@app.route('/s3/avatars/<path:filename>')
+@login_required
+def get_s3_avatar(filename):
+    """Serve S3 avatar through the backend (proxy)."""
+    if not S3_ENABLED or not s3_client:
+        return jsonify({'error': 'S3 not enabled'}), 404
+    
+    try:
+        # Fetch from S3
+        file_obj = s3_client.get_object(Bucket=S3_BUCKET, Key=f'avatars/{filename}')
+        
+        # Stream response
+        return Response(
+            file_obj['Body'].read(),
+            mimetype=file_obj.get('ContentType', 'image/jpeg'),
+            headers={
+                'Cache-Control': 'public, max-age=31536000'
+            }
+        )
+    except Exception as e:
+        # Check if 404
+        if 'NoSuchKey' in str(e):
+             return jsonify({'error': 'File not found'}), 404
+        return jsonify({'error': str(e)}), 500
 
 
 # =============================================================================
@@ -581,7 +736,130 @@ def export_notes():
     finally:
         cursor.close()
         connection.close()
+
+
 # =============================================================================
+# IMPORT
+# =============================================================================
+@app.route('/import', methods=['POST'])
+@login_required
+def import_notes():
+    """Import notes from JSON or TXT file."""
+    user_id = session['user_id']
+
+    if 'file' not in request.files:
+        flash('No file selected.', 'error')
+        return redirect(url_for('index'))
+
+    file = request.files['file']
+    if not file.filename:
+        flash('No file selected.', 'error')
+        return redirect(url_for('index'))
+
+    filename = file.filename.lower()
+    content = file.read().decode('utf-8', errors='replace')
+
+    notes_to_import = []
+
+    if filename.endswith('.json'):
+        try:
+            data = json.loads(content)
+            if isinstance(data, list):
+                notes_to_import = data
+            elif isinstance(data, dict):
+                notes_to_import = [data]
+            else:
+                flash('Invalid JSON format.', 'error')
+                return redirect(url_for('index'))
+        except json.JSONDecodeError:
+            flash('Invalid JSON file.', 'error')
+            return redirect(url_for('index'))
+
+    elif filename.endswith('.txt'):
+        # Parse TXT format matching our export
+        blocks = re.split(r'={10,}', content)
+        for block in blocks:
+            block = block.strip()
+            if not block:
+                continue
+            lines = block.split('\n')
+            note = {'title': '', 'content': '', 'category': None}
+            content_lines = []
+            for line in lines:
+                if line.startswith('Title: '):
+                    note['title'] = line[7:].strip()
+                    if note['title'] == 'Untitled':
+                        note['title'] = ''
+                elif line.startswith('Category: '):
+                    cat = line[10:].strip()
+                    note['category'] = cat if cat != 'None' else None
+                elif line.startswith('Created: '):
+                    pass  # skip timestamp
+                else:
+                    content_lines.append(line)
+            note['content'] = '\n'.join(content_lines).strip()
+            if note['content']:
+                notes_to_import.append(note)
+    else:
+        flash('Unsupported format. Use .json or .txt files.', 'error')
+        return redirect(url_for('index'))
+
+    if not notes_to_import:
+        flash('No notes found in file.', 'error')
+        return redirect(url_for('index'))
+
+    connection = get_db_connection()
+    if not connection:
+        flash('Database connection failed.', 'error')
+        return redirect(url_for('index'))
+
+    try:
+        cursor = connection.cursor(dictionary=True)
+        imported = 0
+
+        # Build category cache
+        cursor.execute('SELECT id, name FROM categories WHERE user_id = %s', (user_id,))
+        cat_cache = {row['name'].lower(): row['id'] for row in cursor.fetchall()}
+
+        for note in notes_to_import:
+            title = note.get('title', '').strip()
+            note_content = note.get('content', '').strip()
+            category_name = note.get('category')
+            category_id = None
+
+            if not note_content:
+                continue
+
+            # Resolve or create category
+            if category_name:
+                cat_key = category_name.lower()
+                if cat_key in cat_cache:
+                    category_id = cat_cache[cat_key]
+                else:
+                    cursor.execute(
+                        'INSERT INTO categories (user_id, name) VALUES (%s, %s)',
+                        (user_id, category_name)
+                    )
+                    category_id = cursor.lastrowid
+                    cat_cache[cat_key] = category_id
+
+            cursor.execute(
+                'INSERT INTO notes (user_id, title, content, category_id) VALUES (%s, %s, %s, %s)',
+                (user_id, title, note_content, category_id)
+            )
+            imported += 1
+
+        connection.commit()
+        flash(f'Successfully imported {imported} note{"s" if imported != 1 else ""}!', 'success')
+    except Error as e:
+        flash(f'Import error: {e}', 'error')
+    finally:
+        cursor.close()
+        connection.close()
+
+    return redirect(url_for('index'))
+
+
 # API ENDPOINTS
 # =============================================================================
 @app.route('/api/stats')

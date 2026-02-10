@@ -6,67 +6,345 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Note-Taking App - Login or continue as guest">
     <title>Login | Note Taking App</title>
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='icons.css') }}">
 </head>
 
-<body class="login-page">
-    <div class="login-container">
-        <div class="login-card">
-            <div class="login-header">
-                <h1>📝 Note Taking App</h1>
-                <p>Capture your thoughts, organize your life</p>
+<body>
+    <div class="login-page">
+        <!-- Decorative Elements -->
+        <div class="login-decoration">
+            <div class="floating-shape shape-1"></div>
+            <div class="floating-shape shape-2"></div>
+            <div class="floating-shape shape-3"></div>
+        </div>
+
+        <div class="login-container">
+            <!-- Hero Illustration -->
+            <div class="login-hero">
+                <svg viewBox="0 0 400 300" class="hero-illustration">
+                    <defs>
+                        <linearGradient id="heroGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#818cf8" />
+                            <stop offset="50%" style="stop-color:#a78bfa" />
+                            <stop offset="100%" style="stop-color:#c084fc" />
+                        </linearGradient>
+                        <linearGradient id="heroGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#818cf8;stop-opacity:0.3" />
+                            <stop offset="100%" style="stop-color:#c084fc;stop-opacity:0.1" />
+                        </linearGradient>
+                    </defs>
+
+                    <!-- Background blob -->
+                    <ellipse cx="200" cy="150" rx="150" ry="100" fill="url(#heroGrad2)" />
+
+                    <!-- Main notepad -->
+                    <rect x="120" y="60" width="160" height="180" rx="12" fill="var(--bg-secondary)"
+                        stroke="url(#heroGrad1)" stroke-width="3" />
+                    <rect x="135" y="80" width="100" height="8" rx="4" fill="url(#heroGrad1)" />
+                    <rect x="135" y="100" width="130" height="6" rx="3" fill="var(--text-muted)" opacity="0.4" />
+                    <rect x="135" y="115" width="110" height="6" rx="3" fill="var(--text-muted)" opacity="0.3" />
+                    <rect x="135" y="130" width="120" height="6" rx="3" fill="var(--text-muted)" opacity="0.3" />
+                    <rect x="135" y="145" width="80" height="6" rx="3" fill="var(--text-muted)" opacity="0.2" />
+
+                    <!-- Floating note 1 -->
+                    <g transform="translate(280, 80) rotate(12)">
+                        <rect width="80" height="60" rx="8" fill="var(--bg-tertiary)" stroke="url(#heroGrad1)"
+                            stroke-width="2" />
+                        <rect x="10" y="12" width="40" height="5" rx="2" fill="url(#heroGrad1)" opacity="0.7" />
+                        <rect x="10" y="24" width="60" height="4" rx="2" fill="var(--text-muted)" opacity="0.3" />
+                        <rect x="10" y="34" width="50" height="4" rx="2" fill="var(--text-muted)" opacity="0.2" />
+                    </g>
+
+                    <!-- Floating note 2 -->
+                    <g transform="translate(40, 100) rotate(-8)">
+                        <rect width="70" height="50" rx="6" fill="var(--bg-tertiary)" stroke="var(--accent-secondary)"
+                            stroke-width="2" />
+                        <rect x="8" y="10" width="35" height="4" rx="2" fill="var(--accent-secondary)" opacity="0.7" />
+                        <rect x="8" y="20" width="50" height="3" rx="1.5" fill="var(--text-muted)" opacity="0.3" />
+                        <rect x="8" y="28" width="40" height="3" rx="1.5" fill="var(--text-muted)" opacity="0.2" />
+                    </g>
+
+                    <!-- Checkmark badge -->
+                    <circle cx="300" cy="200" r="25" fill="url(#heroGrad1)" />
+                    <path d="M290 200 L297 207 L312 192" stroke="white" stroke-width="4" fill="none"
+                        stroke-linecap="round" stroke-linejoin="round" />
+
+                    <!-- Sparkles -->
+                    <circle cx="100" cy="70" r="4" fill="url(#heroGrad1)" opacity="0.8" />
+                    <circle cx="320" cy="110" r="3" fill="var(--accent-secondary)" opacity="0.7" />
+                    <circle cx="80" cy="180" r="3" fill="var(--accent-tertiary)" opacity="0.6" />
+                    <circle cx="350" cy="170" r="5" fill="url(#heroGrad1)" opacity="0.5" />
+                </svg>
             </div>
 
-            <!-- Flash Messages -->
-            {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-            <div class="flash-messages">
-                {% for category, message in messages %}
-                <div class="flash {{ category }}">{{ message }}</div>
-                {% endfor %}
-            </div>
-            {% endif %}
-            {% endwith %}
+            <div class="login-card">
+                <div class="login-header">
+                    <div class="login-logo">
+                        <div class="logo-icon">
+                            <svg class="icon" viewBox="0 0 24 24">
+                                <path d="M12 20h9" />
+                                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <h1>Welcome to Notes</h1>
+                    <p>Capture your thoughts, ideas, and moments</p>
+                </div>
 
-            <div class="login-options">
-                {% if cognito_enabled %}
-                <!-- Cognito Login -->
-                <a href="{{ url_for('auth.cognito_login') }}" class="btn btn-primary btn-large">
-                    🔐 Sign in with AWS Cognito
-                </a>
-
-                <div class="divider">
-                    <span>or</span>
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                    {% endfor %}
                 </div>
                 {% endif %}
+                {% endwith %}
 
-                <!-- Guest Login -->
-                <form action="{{ url_for('auth.guest_login') }}" method="POST">
-                    <button type="submit" class="btn btn-secondary btn-large">
-                        👻 Continue as Guest
-                    </button>
-                </form>
+                <div class="login-options">
+                    <a href="{{ url_for('auth.cognito_login') }}" class="btn btn-primary btn-large">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                            <polyline points="10 17 15 12 10 7" />
+                            <line x1="15" x2="3" y1="12" y2="12" />
+                        </svg>
+                        Continue with AWS Cognito
+                    </a>
 
-                <p class="guest-note">
-                    Guest notes are temporary. Create an account to save permanently!
-                </p>
-            </div>
+                    <div class="divider">
+                        <span>or</span>
+                    </div>
 
-            <div class="features-preview">
-                <h3>✨ Features</h3>
-                <ul>
-                    <li>📁 Organize with categories</li>
-                    <li>📌 Pin important notes</li>
-                    <li>🔍 Powerful search</li>
-                    <li>📝 Markdown formatting</li>
-                    <li>🌓 Dark & light themes</li>
-                    <li>📤 Export your notes</li>
-                </ul>
+                    <a href="{{ url_for('auth.guest_login') }}" class="btn btn-secondary btn-large">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
+                        </svg>
+                        Continue as Guest
+                    </a>
+
+                    <p class="guest-note">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="M12 16v-4" />
+                            <path d="M12 8h.01" />
+                        </svg>
+                        Guest data is temporary and stored in your session only.
+                    </p>
+                </div>
+
+                <div class="features-preview">
+                    <h3>
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path
+                                d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+                        </svg>
+                        Features
+                    </h3>
+                    <ul>
+                        <li>
+                            <svg class="icon" viewBox="0 0 24 24">
+                                <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            Markdown support
+                        </li>
+                        <li>
+                            <svg class="icon" viewBox="0 0 24 24">
+                                <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            Categories & tags
+                        </li>
+                        <li>
+                            <svg class="icon" viewBox="0 0 24 24">
+                                <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            Pin & archive
+                        </li>
+                        <li>
+                            <svg class="icon" viewBox="0 0 24 24">
+                                <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            Export to JSON/TXT
+                        </li>
+                        <li>
+                            <svg class="icon" viewBox="0 0 24 24">
+                                <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            Dark/Light theme
+                        </li>
+                        <li>
+                            <svg class="icon" viewBox="0 0 24 24">
+                                <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            Keyboard shortcuts
+                        </li>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='app.js') }}"></script>
+    <style>
+        /* Login Page Specific Styles */
+        .login-decoration {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .floating-shape {
+            position: absolute;
+            border-radius: 50%;
+            background: var(--gradient-accent);
+            filter: blur(80px);
+            opacity: 0.15;
+            animation: float 20s ease-in-out infinite;
+        }
+
+        .shape-1 {
+            width: 400px;
+            height: 400px;
+            top: -100px;
+            right: -100px;
+            animation-delay: 0s;
+        }
+
+        .shape-2 {
+            width: 300px;
+            height: 300px;
+            bottom: -50px;
+            left: -50px;
+            animation-delay: -7s;
+        }
+
+        .shape-3 {
+            width: 200px;
+            height: 200px;
+            top: 50%;
+            left: 30%;
+            animation-delay: -14s;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            25% {
+                transform: translate(20px, -20px) scale(1.05);
+            }
+
+            50% {
+                transform: translate(-10px, 10px) scale(0.95);
+            }
+
+            75% {
+                transform: translate(-20px, -10px) scale(1.02);
+            }
+        }
+
+        .login-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+            max-width: 500px;
+            width: 100%;
+            padding: 1rem;
+        }
+
+        .login-hero {
+            width: 100%;
+            max-width: 350px;
+        }
+
+        .hero-illustration {
+            width: 100%;
+            height: auto;
+        }
+
+        .login-card {
+            width: 100%;
+        }
+
+        .login-logo {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .login-logo .logo-icon {
+            width: 64px;
+            height: 64px;
+            padding: 1rem;
+            border-radius: 20px;
+        }
+
+        .login-logo .icon {
+            width: 100%;
+            height: 100%;
+        }
+
+        .guest-note {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            justify-content: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+        }
+
+        .guest-note .icon {
+            width: 1rem;
+            height: 1rem;
+            flex-shrink: 0;
+        }
+
+        .features-preview h3 {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+        }
+
+        .features-preview h3 .icon {
+            width: 1.125rem;
+            height: 1.125rem;
+            color: var(--accent-primary);
+        }
+
+        .features-preview ul li {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .features-preview ul li .icon {
+            width: 1rem;
+            height: 1rem;
+            color: var(--success);
+        }
+
+        @media (max-width: 600px) {
+            .login-hero {
+                max-width: 280px;
+            }
+
+            .login-logo .logo-icon {
+                width: 56px;
+                height: 56px;
+            }
+        }
+    </style>
 </body>
 
 </html>
