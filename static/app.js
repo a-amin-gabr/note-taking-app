@@ -215,6 +215,11 @@ function initEditModal() {
 
                 // Show modal
                 modal.classList.add('active');
+
+                // Reset to Raw tab
+                const tabRaw = document.getElementById('tab-raw');
+                if (tabRaw) tabRaw.click();
+
                 document.getElementById('edit-content').focus();
             } catch (error) {
                 console.error('Error loading note:', error);
