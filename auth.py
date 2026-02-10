@@ -201,13 +201,27 @@ def cognito_callback():
         cursor.close()
         connection.close()
         
+        # Determine the name to show in greeting
+        greeting_name = name
+        if user:
+            f_name = user.get('first_name')
+            l_name = user.get('last_name')
+            d_name = user.get('display_name')
+            
+            if f_name and l_name:
+                greeting_name = f"{f_name} {l_name}"
+            elif f_name:
+                greeting_name = f_name
+            elif d_name:
+                greeting_name = d_name
+        
         # Set session
         session['user_id'] = user_id
         session['display_name'] = name
         session['email'] = email
         session['is_guest'] = False
         
-        flash(f'Welcome back, {name}!', 'success')
+        flash(f'Welcome back, {greeting_name}!', 'success')
         return redirect(url_for('index'))
         
     except Exception as e:
