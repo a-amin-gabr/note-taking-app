@@ -10,6 +10,9 @@ document.addEventListener('DOMContentLoaded', () => {
     initEditModal();
     initDeleteConfirmation();
     initAutoFocus();
+    initGreetingClock();
+    initWordCount();
+    initImportHandler();
 });
 
 // ============================================
@@ -261,3 +264,98 @@ setTimeout(() => {
         setTimeout(() => flash.remove(), 500);
     });
 }, 5000);
+
+// ============================================
+// Greeting Clock
+// ============================================
+
+function initGreetingClock() {
+    const clockEl = document.getElementById('greeting-clock');
+    const greetingEl = document.getElementById('greeting-message');
+    if (!clockEl) return;
+
+    const timezone = document.body.dataset.timezone || 'UTC';
+
+    function updateClock() {
+        const now = new Date();
+        const opts = { timeZone: timezone };
+
+        // Greeting based on hour
+        const hour = parseInt(now.toLocaleString('en-US', { ...opts, hour: 'numeric', hour12: false }));
+        let greeting = 'Good evening';
+        if (hour >= 5 && hour < 12) greeting = 'Good morning';
+        else if (hour >= 12 && hour < 17) greeting = 'Good afternoon';
+
+        if (greetingEl) {
+            const name = greetingEl.textContent.split(',')[1] || '';
+            greetingEl.textContent = `${greeting},${name}`;
+        }
+
+        // Format: Mon, Feb 10 · 07:14 AM
+        const dateStr = now.toLocaleDateString('en-US', {
+            ...opts,
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric'
+        });
+        const timeStr = now.toLocaleTimeString('en-US', {
+            ...opts,
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+        });
+
+        clockEl.textContent = `${dateStr} \u00b7 ${timeStr}`;
+    }
+
+    updateClock();
+    setInterval(updateClock, 1000);
+}
+
+// ============================================
+// Word Count
+// ============================================
+
+function initWordCount() {
+    const textarea = document.getElementById('note-content');
+    const counter = document.getElementById('word-count');
+    if (!textarea || !counter) return;
+
+    function update() {
+        const text = textarea.value.trim();
+        const words = text ? text.split(/\s+/).length : 0;
+        const chars = textarea.value.length;
+        counter.textContent = `${words} word${words !== 1 ? 's' : ''} \u00b7 ${chars} character${chars !== 1 ? 's' : ''}`;
+    }
+
+    textarea.addEventListener('input', update);
+    update();
+}
+
+// ============================================
+// Import Handler
+// ============================================
+
+function initImportHandler() {
+    const fileInput = document.getElementById('import-file');
+    const form = document.getElementById('import-form');
+    if (!fileInput || !form) return;
+
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (ext !== 'json' && ext !== 'txt') {
+                alert('Please select a .json or .txt file');
+                fileInput.value = '';
+                return;
+            }
+            if (confirm(`Import notes from "${file.name}"?`)) {
+                form.submit();
+            } else {
+                fileInput.value = '';
+            }
+        }
+    });
+}
