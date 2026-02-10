@@ -29,3 +29,6 @@ Thumbs.db
 *.service
 *.tar
 /backup/
+
+# User uploads
+static/uploads/
