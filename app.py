@@ -926,6 +926,7 @@ def api_get_note(note_id):
         if note:
             note['created_at'] = note['created_at'].isoformat() if note['created_at'] else None
             note['updated_at'] = note['updated_at'].isoformat() if note['updated_at'] else None
+            note['content_html'] = render_markdown(note['content'])
             return jsonify(note)
         return jsonify({'error': 'Note not found'}), 404
     finally:
