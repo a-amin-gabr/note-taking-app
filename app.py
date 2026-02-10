@@ -57,7 +57,7 @@ def upload_file_to_storage(file_data, filename, content_type='image/jpeg'):
                 Body=file_data,
                 ContentType=content_type
             )
-            return f"https://{S3_BUCKET}.s3.{S3_REGION}.amazonaws.com/{key}"
+            return url_for('get_s3_avatar', filename=filename)
         except Exception as e:
             print(f"S3 upload failed, falling back to local: {e}")
     
@@ -377,6 +377,32 @@ def upload_avatar():
             connection.close()
 
     return redirect(url_for('profile'))
+
+
+@app.route('/s3/avatars/<path:filename>')
+@login_required
+def get_s3_avatar(filename):
+    """Serve S3 avatar through the backend (proxy)."""
+    if not S3_ENABLED or not s3_client:
+        return jsonify({'error': 'S3 not enabled'}), 404
+    
+    try:
+        # Fetch from S3
+        file_obj = s3_client.get_object(Bucket=S3_BUCKET, Key=f'avatars/{filename}')
+        
+        # Stream response
+        return Response(
+            file_obj['Body'].read(),
+            mimetype=file_obj.get('ContentType', 'image/jpeg'),
+            headers={
+                'Cache-Control': 'public, max-age=31536000'
+            }
+        )
+    except Exception as e:
+        # Check if 404
+        if 'NoSuchKey' in str(e):
+             return jsonify({'error': 'File not found'}), 404
+        return jsonify({'error': str(e)}), 500
 
 
 # =============================================================================
