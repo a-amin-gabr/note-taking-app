@@ -559,43 +559,69 @@ def toggle_archive(note_id):
 # =============================================================================
 # SHARE
 # =============================================================================
-@app.route('/share/<int:note_id>', methods=['POST'])
+# =============================================================================
+# SHARE (API)
+# =============================================================================
+@app.route('/api/note/<int:note_id>/share', methods=['POST'])
 @login_required
-def toggle_share(note_id):
-    """Generate or remove share link for a note."""
+def api_share_note(note_id):
+    """Enable sharing for a note and return the link."""
     user_id = session['user_id']
     
     connection = get_db_connection()
-    if connection:
-        try:
-            cursor = connection.cursor(dictionary=True)
-            cursor.execute('SELECT is_public, share_token FROM notes WHERE id = %s AND user_id = %s', (note_id, user_id))
-            note = cursor.fetchone()
+    if not connection:
+        return jsonify({'error': 'Database connection failed'}), 500
+        
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute('SELECT share_token, is_public FROM notes WHERE id = %s AND user_id = %s', (note_id, user_id))
+        note = cursor.fetchone()
+        
+        if not note:
+            return jsonify({'error': 'Note not found'}), 404
             
-            if note:
-                if note['is_public']:
-                    # Remove sharing
-                    cursor.execute(
-                        'UPDATE notes SET is_public = FALSE, share_token = NULL WHERE id = %s',
-                        (note_id,)
-                    )
-                    flash('Note is now private.', 'info')
-                else:
-                    # Enable sharing
-                    token = secrets.token_urlsafe(32)
-                    cursor.execute(
-                        'UPDATE notes SET is_public = TRUE, share_token = %s WHERE id = %s',
-                        (token, note_id)
-                    )
-                    share_url = url_for('view_shared', token=token, _external=True)
-                    flash(f'Share link: {share_url}', 'success')
-                
-                connection.commit()
-        finally:
-            cursor.close()
-            connection.close()
+        token = note['share_token']
+        if not token:
+            token = secrets.token_urlsafe(32)
+            
+        cursor.execute(
+            'UPDATE notes SET is_public = TRUE, share_token = %s WHERE id = %s',
+            (token, note_id)
+        )
+        connection.commit()
+        
+        share_url = url_for('view_shared', token=token, _external=True)
+        return jsonify({'share_url': share_url, 'is_public': True})
+    except Error as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        connection.close()
+
+@app.route('/api/note/<int:note_id>/share', methods=['DELETE'])
+@login_required
+def api_unshare_note(note_id):
+    """Disable sharing for a note."""
+    user_id = session['user_id']
     
-    return redirect(url_for('index'))
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({'error': 'Database connection failed'}), 500
+        
+    try:
+        cursor = connection.cursor()
+        cursor.execute(
+            'UPDATE notes SET is_public = FALSE WHERE id = %s AND user_id = %s',
+            (note_id, user_id)
+        )
+        connection.commit()
+        return jsonify({'success': True, 'is_public': False})
+    except Error as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        connection.close()
+
 @app.route('/shared/<token>')
 def view_shared(token):
     """View a publicly shared note."""
@@ -615,8 +641,8 @@ def view_shared(token):
         note = cursor.fetchone()
         
         if not note:
-            flash('Note not found or no longer shared.', 'error')
-            return redirect(url_for('auth.login'))
+            # If not found or not public, maybe show a custom 404 or redirect
+            return render_template('shared.html', error="This note is not available or the link has expired."), 404
         
         note['content_html'] = render_markdown(note['content'])
         return render_template('shared.html', note=note)
@@ -893,6 +919,18 @@ def api_stats():
     finally:
         cursor.close()
         connection.close()
+
+
+@app.route('/api/preview', methods=['POST'])
+@login_required
+def api_preview_markdown():
+    """Render markdown for preview."""
+    data = request.get_json()
+    content = data.get('content', '')
+    html = render_markdown(content)
+    return jsonify({'html': html})
+
+
 @app.route('/api/note/<int:note_id>')
 @login_required
 def api_get_note(note_id):
@@ -914,6 +952,7 @@ def api_get_note(note_id):
         if note:
             note['created_at'] = note['created_at'].isoformat() if note['created_at'] else None
             note['updated_at'] = note['updated_at'].isoformat() if note['updated_at'] else None
+            note['content_html'] = render_markdown(note['content'])
             return jsonify(note)
         return jsonify({'error': 'Note not found'}), 404
     finally:

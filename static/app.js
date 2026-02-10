@@ -1,18 +1,22 @@
-/**
- * Note Taking App - JavaScript
- * Theme toggle, keyboard shortcuts, edit modal, live search
- */
-
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize components
+    const shortcutsModal = document.getElementById('shortcuts-modal');
+
     initTheme();
-    initMobileMenu();
-    initKeyboardShortcuts();
     initEditModal();
+    initKeyboardShortcuts();
+    initLiveSearch();
     initDeleteConfirmation();
     initAutoFocus();
+
+    // New Initializations
     initGreetingClock();
     initWordCount();
     initImportHandler();
+    initEditTabs();
+    initViewModal();
+    initShareModal();
+    initMobileMenu();
 });
 
 // ============================================
@@ -20,52 +24,25 @@ document.addEventListener('DOMContentLoaded', () => {
 // ============================================
 
 function initTheme() {
-    const themeToggle = document.getElementById('theme-toggle');
-    const themeToggleMobile = document.getElementById('theme-toggle-mobile');
     const html = document.documentElement;
+    const toggles = [
+        document.getElementById('theme-toggle'),
+        document.getElementById('theme-toggle-mobile')
+    ].filter(el => el !== null);
 
-    // Load saved theme
-    const savedTheme = localStorage.getItem('theme') || 'dark';
+    // Check saved theme
+    const savedTheme = localStorage.getItem('theme') || 'light';
     html.setAttribute('data-theme', savedTheme);
 
-    const toggleTheme = () => {
-        const current = html.getAttribute('data-theme');
-        const next = current === 'dark' ? 'light' : 'dark';
-        html.setAttribute('data-theme', next);
-        localStorage.setItem('theme', next);
-    };
+    toggles.forEach(toggle => {
+        toggle.addEventListener('click', () => {
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
 
-    if (themeToggle) {
-        themeToggle.addEventListener('click', toggleTheme);
-    }
-
-    if (themeToggleMobile) {
-        themeToggleMobile.addEventListener('click', toggleTheme);
-    }
-}
-
-// ============================================
-// Mobile Menu
-// ============================================
-
-function initMobileMenu() {
-    const menuToggle = document.getElementById('mobile-menu-toggle');
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebar-overlay');
-
-    if (!menuToggle || !sidebar) return;
-
-    menuToggle.addEventListener('click', () => {
-        sidebar.classList.toggle('open');
-        if (overlay) overlay.classList.toggle('active');
-    });
-
-    if (overlay) {
-        overlay.addEventListener('click', () => {
-            sidebar.classList.remove('open');
-            overlay.classList.remove('active');
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
         });
-    }
+    });
 }
 
 // ============================================
@@ -73,21 +50,31 @@ function initMobileMenu() {
 // ============================================
 
 function initKeyboardShortcuts() {
-    const searchInput = document.getElementById('search-input');
-    const noteContent = document.getElementById('note-content');
     const shortcutsModal = document.getElementById('shortcuts-modal');
+    let isTyping = false;
+
+    // Track typing status to disable shortcuts
+    document.addEventListener('focusin', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+            isTyping = true;
+        }
+    });
+
+    document.addEventListener('focusout', () => {
+        isTyping = false;
+    });
 
     document.addEventListener('keydown', (e) => {
-        // Don't trigger shortcuts when typing in inputs
-        const isTyping = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
+        const noteContent = document.getElementById('note-content');
 
-        // Ctrl+K - Focus search
+        // Ctrl+K - Focus Search
         if (e.ctrlKey && e.key === 'k') {
             e.preventDefault();
+            const searchInput = document.getElementById('search-input');
             if (searchInput) searchInput.focus();
         }
 
-        // Ctrl+T - Toggle theme
+        // Ctrl+T - Toggle Theme
         if (e.ctrlKey && e.key === 't') {
             e.preventDefault();
             const themeToggle = document.getElementById('theme-toggle');
@@ -144,36 +131,50 @@ function initEditModal() {
 
     if (!modal || !editForm) return;
 
+    // Shared Open Modal Function
+    const openModal = async (noteId, initialTab = 'raw') => {
+        try {
+            const response = await fetch(`/api/note/${noteId}`);
+            if (!response.ok) throw new Error('Note not found');
+            const note = await response.json();
+
+            // Populate form
+            document.getElementById('edit-title').value = note.title || '';
+            document.getElementById('edit-content').value = note.content || '';
+
+            const categorySelect = document.getElementById('edit-category');
+            if (categorySelect && note.category_id) {
+                categorySelect.value = note.category_id;
+            }
+
+            // Set form action
+            editForm.action = `/edit/${noteId}`;
+
+            // Show modal
+            modal.classList.add('active');
+
+            // Handle Tab Selection
+            const tabRaw = document.getElementById('tab-raw');
+            const tabPreview = document.getElementById('tab-preview');
+            const noteContent = document.getElementById('edit-content');
+            const previewDiv = document.getElementById('edit-preview');
+
+            // Reset to Raw tab always upon opening edit
+            // Unless specifically asked for preview (which we are not doing for edits anymore)
+            if (tabRaw) tabRaw.click();
+            document.getElementById('edit-content').focus();
+
+        } catch (error) {
+            console.error('Error loading note:', error);
+            alert('Failed to load note');
+        }
+    };
+
     // Edit button click handlers
     document.querySelectorAll('.edit-btn').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            const noteId = btn.dataset.noteId;
-
-            try {
-                const response = await fetch(`/api/note/${noteId}`);
-                if (!response.ok) throw new Error('Note not found');
-
-                const note = await response.json();
-
-                // Populate form
-                document.getElementById('edit-title').value = note.title || '';
-                document.getElementById('edit-content').value = note.content || '';
-
-                const categorySelect = document.getElementById('edit-category');
-                if (categorySelect && note.category_id) {
-                    categorySelect.value = note.category_id;
-                }
-
-                // Set form action
-                editForm.action = `/edit/${noteId}`;
-
-                // Show modal
-                modal.classList.add('active');
-                document.getElementById('edit-content').focus();
-            } catch (error) {
-                console.error('Error loading note:', error);
-                alert('Failed to load note for editing');
-            }
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent card click
+            openModal(btn.dataset.noteId, 'raw');
         });
     });
 
@@ -190,6 +191,140 @@ function initEditModal() {
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
             modal.classList.remove('active');
+        }
+    });
+}
+
+// ============================================
+// View Modal (Read-Only)
+// ============================================
+
+function initViewModal() {
+    const modal = document.getElementById('view-modal');
+    const closeBtn = document.getElementById('view-modal-close');
+    const editBtn = document.getElementById('view-edit-btn');
+
+    if (!modal) return;
+
+    const openViewModal = async (noteId) => {
+        try {
+            // Show loading state
+            document.getElementById('view-content').innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-muted);">Loading...</div>';
+            document.getElementById('view-title').textContent = 'Loading...';
+            modal.classList.add('active');
+
+            const response = await fetch(`/api/note/${noteId}`);
+            if (!response.ok) throw new Error('Note not found');
+            const note = await response.json();
+
+            // Populate content
+            document.getElementById('view-title').textContent = note.title || 'Untitled Note';
+            document.getElementById('view-content').innerHTML = note.content_html || '<p>No content</p>';
+
+            // Populate metadata
+            // Format: Feb 12, 2024 at 10:30 AM
+            const dateStr = note.updated_at ? new Date(note.updated_at).toLocaleString('en-US', {
+                month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric'
+            }) : 'Unknown date';
+            document.getElementById('view-date').textContent = `Last active: ${dateStr}`;
+
+            const catSpan = document.getElementById('view-category');
+            if (note.category_name) {
+                catSpan.textContent = note.category_name;
+                catSpan.style.color = note.category_color || 'var(--text-secondary)';
+                catSpan.style.display = 'inline';
+            } else {
+                catSpan.style.display = 'none';
+            }
+
+            // Setup Edit Button
+            if (editBtn) {
+                // Clear previous listeners to avoid duplicates if using addEventListener
+                // Or just use onclick property
+                editBtn.onclick = () => {
+                    modal.classList.remove('active');
+                    // Find the edit button for this note and click it
+                    const cardEditBtn = document.querySelector(`.edit-btn[data-note-id="${noteId}"]`);
+                    if (cardEditBtn) cardEditBtn.click();
+                };
+            }
+
+        } catch (error) {
+            console.error('Error viewing note:', error);
+            document.getElementById('view-content').innerHTML = '<div style="color: var(--error); padding: 1rem;">Failed to load note.</div>';
+        }
+    };
+
+    // Card click handlers
+    document.querySelectorAll('.note-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+            // Ignore if clicking interactive elements
+            if (e.target.closest('button') || e.target.closest('a') || e.target.closest('.note-actions-bar') || e.target.closest('.delete-form')) return;
+
+            const btn = card.querySelector('.edit-btn');
+            if (btn) {
+                openViewModal(btn.dataset.noteId);
+            }
+        });
+    });
+
+    // Close handlers
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => modal.classList.remove('active'));
+    }
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.classList.remove('active');
+        }
+    });
+
+    // Esc key is handled globally
+}
+
+// ============================================
+// Edit Tabs (Raw/Preview)
+// ============================================
+
+function initEditTabs() {
+    const tabRaw = document.getElementById('tab-raw');
+    const tabPreview = document.getElementById('tab-preview');
+    const noteContent = document.getElementById('edit-content');
+    const previewDiv = document.getElementById('edit-preview');
+
+    if (!tabRaw || !tabPreview) return;
+
+    tabRaw.addEventListener('click', () => {
+        tabRaw.classList.add('active');
+        tabPreview.classList.remove('active');
+        noteContent.classList.remove('hidden');
+        previewDiv.classList.add('hidden');
+        noteContent.focus();
+    });
+
+    tabPreview.addEventListener('click', async () => {
+        tabPreview.classList.add('active');
+        tabRaw.classList.remove('active');
+        noteContent.classList.add('hidden');
+        previewDiv.classList.remove('hidden');
+
+        // Show loading state
+        previewDiv.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-muted);">Loading preview...</div>';
+
+        try {
+            const response = await fetch('/api/preview', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: noteContent.value })
+            });
+
+            if (!response.ok) throw new Error('Preview failed');
+
+            const data = await response.json();
+            previewDiv.innerHTML = data.html;
+        } catch (error) {
+            console.error('Preview error:', error);
+            previewDiv.innerHTML = '<div style="color: var(--error); padding: 1rem;">Failed to load preview</div>';
         }
     });
 }
@@ -355,6 +490,202 @@ function initImportHandler() {
                 form.submit();
             } else {
                 fileInput.value = '';
+            }
+        }
+    });
+}
+
+// ============================================
+// Share Modal
+// ============================================
+
+function initShareModal() {
+    const modal = document.getElementById('share-modal');
+    const closeBtn = document.getElementById('share-modal-close');
+    const privateState = document.getElementById('share-private-state');
+    const publicState = document.getElementById('share-public-state');
+    const linkInput = document.getElementById('share-link-input');
+    const generateBtn = document.getElementById('btn-generate-link');
+    const copyBtn = document.getElementById('btn-copy-link');
+    const stopBtn = document.getElementById('btn-stop-sharing');
+
+    if (!modal) return;
+
+    let currentNoteId = null;
+
+    // Open Modal
+    const openShareModal = async (noteId) => {
+        currentNoteId = noteId;
+        modal.classList.add('active');
+
+        // Reset and Show Loading
+        privateState.classList.add('hidden');
+        publicState.classList.add('hidden');
+
+        try {
+            const response = await fetch(`/api/note/${noteId}`);
+            if (!response.ok) throw new Error('Note not found');
+            const note = await response.json();
+
+            if (note.is_public && note.share_token) {
+                // Show Public State
+                publicState.classList.remove('hidden');
+                linkInput.value = `${window.location.origin}/shared/${note.share_token}`;
+            } else {
+                // Show Private State
+                privateState.classList.remove('hidden');
+            }
+        } catch (error) {
+            console.error('Error sharing note:', error);
+            alert('Failed to load share status');
+            modal.classList.remove('active');
+        }
+    };
+
+    // Card Button Listeners
+    const cardBtns = document.querySelectorAll('.share-btn');
+    cardBtns.forEach(btn => {
+        // Remove existing listener if any? No, init calls are once.
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation(); // prevent opening preview
+            openShareModal(btn.dataset.noteId);
+        });
+    });
+
+    // Generate Link
+    if (generateBtn) {
+        generateBtn.onclick = async () => {
+            if (!currentNoteId) return;
+            generateBtn.disabled = true;
+            const originalText = generateBtn.innerHTML;
+            generateBtn.innerHTML = 'Generating...';
+
+            try {
+                const res = await fetch(`/api/note/${currentNoteId}/share`, { method: 'POST' });
+                const data = await res.json();
+
+                if (data.share_url) {
+                    privateState.classList.add('hidden');
+                    publicState.classList.remove('hidden');
+                    linkInput.value = data.share_url;
+
+                    // Update icon on card instantly without reload
+                    const cardBtn = document.querySelector(`.share-btn[data-note-id="${currentNoteId}"]`);
+                    if (cardBtn) {
+                        cardBtn.innerHTML = `
+                            <svg class="icon" viewBox="0 0 24 24">
+                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                            </svg>`;
+                    }
+                }
+            } catch (error) {
+                console.error(error);
+                alert('Failed to generate link');
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = `
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/></svg>
+                        Generate Public Link`;
+            }
+        };
+    }
+
+    // Stop Sharing
+    if (stopBtn) {
+        stopBtn.onclick = async () => {
+            if (!confirm('Are you sure? The link will stop working for everyone.')) return;
+            stopBtn.disabled = true;
+
+            try {
+                const res = await fetch(`/api/note/${currentNoteId}/share`, { method: 'DELETE' });
+                const data = await res.json();
+
+                if (data.success) {
+                    publicState.classList.add('hidden');
+                    privateState.classList.remove('hidden');
+
+                    // Update icon on card
+                    const cardBtn = document.querySelector(`.share-btn[data-note-id="${currentNoteId}"]`);
+                    if (cardBtn) {
+                        cardBtn.innerHTML = `
+                            <svg class="icon" viewBox="0 0 24 24">
+                                <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                            </svg>`;
+                    }
+                }
+            } catch (error) {
+                console.error(error);
+                alert('Failed to stop sharing');
+            } finally {
+                stopBtn.disabled = false;
+            }
+        };
+    }
+
+    // Copy Link
+    if (copyBtn) {
+        copyBtn.onclick = () => {
+            linkInput.select();
+            document.execCommand('copy');
+
+            // Visual feedback
+            const originalHTML = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>'; // Checkmark
+            copyBtn.classList.add('btn-success');
+
+            setTimeout(() => {
+                copyBtn.innerHTML = originalHTML;
+                copyBtn.classList.remove('btn-success');
+            }, 2000);
+        };
+    }
+
+    // Close handlers
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => modal.classList.remove('active'));
+    }
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.classList.remove('active');
+        }
+    });
+}
+
+// ============================================
+// Mobile Menu
+// ============================================
+
+function initMobileMenu() {
+    const toggle = document.getElementById('mobile-menu-toggle');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+
+    if (!toggle || !sidebar || !overlay) return;
+
+    const toggleMenu = () => {
+        sidebar.classList.toggle('open');
+        overlay.classList.toggle('active');
+        document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : '';
+    };
+
+    toggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleMenu();
+    });
+
+    overlay.addEventListener('click', toggleMenu);
+
+    // Close sidebar on link click
+    sidebar.addEventListener('click', (e) => {
+        if (e.target.closest('a') || e.target.closest('button')) {
+            // Don't close for theme toggle if it's in sidebar (desktop only but safe)
+            if (e.target.closest('#theme-toggle')) return;
+
+            if (sidebar.classList.contains('open')) {
+                toggleMenu();
             }
         }
     });
