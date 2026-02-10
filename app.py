@@ -78,8 +78,17 @@ DB_CONFIG = {
     'port': int(os.getenv('DB_PORT', 3306))
 }
 # Allowed HTML tags for markdown
-ALLOWED_TAGS = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'em', 'ul', 'ol', 'li', 'code', 'pre', 'blockquote', 'a', 'br']
-ALLOWED_ATTRS = {'a': ['href', 'title']}
+ALLOWED_TAGS = [
+    'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'em', 'ul', 'ol', 'li', 
+    'code', 'pre', 'blockquote', 'a', 'br', 'hr',
+    'table', 'thead', 'tbody', 'tr', 'th', 'td', 'img',
+    'del', 'ins', 'sup', 'sub', 'mark'
+]
+ALLOWED_ATTRS = {
+    'a': ['href', 'title'],
+    'img': ['src', 'alt', 'title', 'width', 'height'],
+    '*': ['class']
+}
 def get_db_connection():
     """Create and return a database connection."""
     try:
@@ -155,7 +164,12 @@ def init_db():
         connection.close()
 def render_markdown(text):
     """Convert markdown to sanitized HTML."""
-    html = markdown.markdown(text, extensions=['fenced_code', 'tables'])
+    html = markdown.markdown(text, extensions=[
+        'extra',        # Tables, fenced code, footnotes, attrib, def types
+        'nl2br',        # Newlines to <br>
+        'sane_lists',   # Better list handling
+        'smarty'        # Smart quotes
+    ])
     return bleach.clean(html, tags=ALLOWED_TAGS, attributes=ALLOWED_ATTRS)
 # =============================================================================
 # MAIN ROUTES
