@@ -75,7 +75,7 @@ def login():
     return render_template('login.html', cognito_enabled=COGNITO_ENABLED)
 
 
-@auth_bp.route('/guest', methods=['POST'])
+@auth_bp.route('/guest', methods=['GET', 'POST'])
 def guest_login():
     """Create a guest session with full functionality."""
     connection = get_db_connection()
