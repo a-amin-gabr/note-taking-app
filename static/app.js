@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initImportHandler();
     initEditTabs();
     initViewModal();
+    initShareModal();
 });
 
 // ============================================
@@ -495,6 +496,165 @@ function initImportHandler() {
             } else {
                 fileInput.value = '';
             }
+        }
+    });
+}
+
+// ============================================
+// Share Modal
+// ============================================
+
+function initShareModal() {
+    const modal = document.getElementById('share-modal');
+    const closeBtn = document.getElementById('share-modal-close');
+    const privateState = document.getElementById('share-private-state');
+    const publicState = document.getElementById('share-public-state');
+    const linkInput = document.getElementById('share-link-input');
+    const generateBtn = document.getElementById('btn-generate-link');
+    const copyBtn = document.getElementById('btn-copy-link');
+    const stopBtn = document.getElementById('btn-stop-sharing');
+
+    if (!modal) return;
+
+    let currentNoteId = null;
+
+    // Open Modal
+    const openShareModal = async (noteId) => {
+        currentNoteId = noteId;
+        modal.classList.add('active');
+
+        // Reset and Show Loading
+        privateState.classList.add('hidden');
+        publicState.classList.add('hidden');
+
+        try {
+            const response = await fetch(`/api/note/${noteId}`);
+            if (!response.ok) throw new Error('Note not found');
+            const note = await response.json();
+
+            if (note.is_public && note.share_token) {
+                // Show Public State
+                publicState.classList.remove('hidden');
+                linkInput.value = `${window.location.origin}/shared/${note.share_token}`;
+            } else {
+                // Show Private State
+                privateState.classList.remove('hidden');
+            }
+        } catch (error) {
+            console.error('Error sharing note:', error);
+            alert('Failed to load share status');
+            modal.classList.remove('active');
+        }
+    };
+
+    // Card Button Listeners
+    const cardBtns = document.querySelectorAll('.share-btn');
+    cardBtns.forEach(btn => {
+        // Remove existing listener if any? No, init calls are once.
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation(); // prevent opening preview
+            openShareModal(btn.dataset.noteId);
+        });
+    });
+
+    // Generate Link
+    if (generateBtn) {
+        generateBtn.onclick = async () => {
+            if (!currentNoteId) return;
+            generateBtn.disabled = true;
+            const originalText = generateBtn.innerHTML;
+            generateBtn.innerHTML = 'Generating...';
+
+            try {
+                const res = await fetch(`/api/note/${currentNoteId}/share`, { method: 'POST' });
+                const data = await res.json();
+
+                if (data.share_url) {
+                    privateState.classList.add('hidden');
+                    publicState.classList.remove('hidden');
+                    linkInput.value = data.share_url;
+
+                    // Update icon on card instantly without reload
+                    const cardBtn = document.querySelector(`.share-btn[data-note-id="${currentNoteId}"]`);
+                    if (cardBtn) {
+                        cardBtn.innerHTML = `
+                            <svg class="icon" viewBox="0 0 24 24">
+                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                            </svg>`;
+                    }
+                }
+            } catch (error) {
+                console.error(error);
+                alert('Failed to generate link');
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = `
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/></svg>
+                        Generate Public Link`;
+            }
+        };
+    }
+
+    // Stop Sharing
+    if (stopBtn) {
+        stopBtn.onclick = async () => {
+            if (!confirm('Are you sure? The link will stop working for everyone.')) return;
+            stopBtn.disabled = true;
+
+            try {
+                const res = await fetch(`/api/note/${currentNoteId}/share`, { method: 'DELETE' });
+                const data = await res.json();
+
+                if (data.success) {
+                    publicState.classList.add('hidden');
+                    privateState.classList.remove('hidden');
+
+                    // Update icon on card
+                    const cardBtn = document.querySelector(`.share-btn[data-note-id="${currentNoteId}"]`);
+                    if (cardBtn) {
+                        cardBtn.innerHTML = `
+                            <svg class="icon" viewBox="0 0 24 24">
+                                <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                            </svg>`;
+                    }
+                }
+            } catch (error) {
+                console.error(error);
+                alert('Failed to stop sharing');
+            } finally {
+                stopBtn.disabled = false;
+            }
+        };
+    }
+
+    // Copy Link
+    if (copyBtn) {
+        copyBtn.onclick = () => {
+            linkInput.select();
+            document.execCommand('copy');
+
+            // Visual feedback
+            const originalHTML = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<svg class="icon" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>'; // Checkmark
+            copyBtn.classList.add('btn-success');
+
+            setTimeout(() => {
+                copyBtn.innerHTML = originalHTML;
+                copyBtn.classList.remove('btn-success');
+            }, 2000);
+        };
+    }
+
+    // Close handlers
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => modal.classList.remove('active'));
+    }
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.classList.remove('active');
         }
     });
 }
