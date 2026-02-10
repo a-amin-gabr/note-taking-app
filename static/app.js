@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initEditTabs();
     initViewModal();
     initShareModal();
+    initMobileMenu();
 });
 
 // ============================================
@@ -23,31 +24,25 @@ document.addEventListener('DOMContentLoaded', () => {
 // ============================================
 
 function initTheme() {
-    const themeToggle = document.getElementById('theme-toggle');
     const html = document.documentElement;
-    const themeIcon = themeToggle.querySelector('.theme-icon');
+    const toggles = [
+        document.getElementById('theme-toggle'),
+        document.getElementById('theme-toggle-mobile')
+    ].filter(el => el !== null);
 
     // Check saved theme
     const savedTheme = localStorage.getItem('theme') || 'light';
     html.setAttribute('data-theme', savedTheme);
-    updateThemeIcon(savedTheme);
 
-    themeToggle.addEventListener('click', () => {
-        const currentTheme = html.getAttribute('data-theme');
-        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    toggles.forEach(toggle => {
+        toggle.addEventListener('click', () => {
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
 
-        html.setAttribute('data-theme', newTheme);
-        localStorage.setItem('theme', newTheme);
-        updateThemeIcon(newTheme);
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        });
     });
-
-    function updateThemeIcon(theme) {
-        // Moon icon for dark mode (default in HTML is moon?)
-        // Actually the SVG path changes probably.
-        // For simplicity, we just toggle class or let user handle SVGs if they were dynamic.
-        // In this app, the icon is static in HTML, maybe CSS handles it?
-        // Let's assume CSS handles it or we leave it as is.
-    }
 }
 
 // ============================================
@@ -655,6 +650,43 @@ function initShareModal() {
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
             modal.classList.remove('active');
+        }
+    });
+}
+
+// ============================================
+// Mobile Menu
+// ============================================
+
+function initMobileMenu() {
+    const toggle = document.getElementById('mobile-menu-toggle');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+
+    if (!toggle || !sidebar || !overlay) return;
+
+    const toggleMenu = () => {
+        sidebar.classList.toggle('open');
+        overlay.classList.toggle('active');
+        document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : '';
+    };
+
+    toggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleMenu();
+    });
+
+    overlay.addEventListener('click', toggleMenu);
+
+    // Close sidebar on link click
+    sidebar.addEventListener('click', (e) => {
+        if (e.target.closest('a') || e.target.closest('button')) {
+            // Don't close for theme toggle if it's in sidebar (desktop only but safe)
+            if (e.target.closest('#theme-toggle')) return;
+
+            if (sidebar.classList.contains('open')) {
+                toggleMenu();
+            }
         }
     });
 }
