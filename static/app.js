@@ -145,22 +145,27 @@ function initEditModal() {
         return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
     };
 
-    // Helper: Insert text at cursor position
+    // Helper: Insert text at cursor position (Undo-Safe)
     const insertAtCursor = (text) => {
         const textarea = document.getElementById('edit-content');
         if (!textarea) return;
 
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        const before = textarea.value.substring(0, start);
-        const after = textarea.value.substring(end);
-
-        textarea.value = before + text + after;
-        textarea.selectionStart = textarea.selectionEnd = start + text.length;
         textarea.focus();
 
-        // Trigger input event for previews/autosize
-        textarea.dispatchEvent(new Event('input'));
+        // Use execCommand to preserve undo history (Standard for text editors)
+        // Although deprecated, it is the only reliable way to handle undo stack programmatically
+        const success = document.execCommand('insertText', false, text);
+
+        // Fallback if execCommand fails (e.g. some mobile browsers)
+        if (!success) {
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const before = textarea.value.substring(0, start);
+            const after = textarea.value.substring(end);
+            textarea.value = before + text + after;
+            textarea.selectionStart = textarea.selectionEnd = start + text.length;
+            textarea.dispatchEvent(new Event('input'));
+        }
     };
 
     // Helper to render attachment item
