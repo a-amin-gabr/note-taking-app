@@ -185,6 +185,14 @@ def render_markdown(text):
 # =============================================================================
 # MAIN ROUTES
 # =============================================================================
+@app.route('/favicon.ico')
+def favicon():
+    from flask import send_from_directory
+    return send_from_directory(os.path.join(app.root_path, 'static', 'images'),
+                               'logo.png', mimetype='image/png')
+
+
+# Routes
 @app.route('/')
 @login_required
 def index():

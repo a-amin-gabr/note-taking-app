@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Note-Taking App - Login or continue as guest">
     <title>Login | Note Taking App</title>
+    <link rel="icon" href="{{ url_for('static', filename='images/logo.png') }}?v=1" type="image/png">
     <!-- Google Fonts - Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,72 +25,12 @@
         </div>
 
         <div class="login-container">
-            <!-- Hero Illustration -->
-            <div class="login-hero">
-                <svg viewBox="0 0 400 300" class="hero-illustration">
-                    <defs>
-                        <linearGradient id="heroGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style="stop-color:#818cf8" />
-                            <stop offset="50%" style="stop-color:#a78bfa" />
-                            <stop offset="100%" style="stop-color:#c084fc" />
-                        </linearGradient>
-                        <linearGradient id="heroGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" style="stop-color:#818cf8;stop-opacity:0.3" />
-                            <stop offset="100%" style="stop-color:#c084fc;stop-opacity:0.1" />
-                        </linearGradient>
-                    </defs>
-
-                    <!-- Background blob -->
-                    <ellipse cx="200" cy="150" rx="150" ry="100" fill="url(#heroGrad2)" />
-
-                    <!-- Main notepad -->
-                    <rect x="120" y="60" width="160" height="180" rx="12" fill="var(--bg-secondary)"
-                        stroke="url(#heroGrad1)" stroke-width="3" />
-                    <rect x="135" y="80" width="100" height="8" rx="4" fill="url(#heroGrad1)" />
-                    <rect x="135" y="100" width="130" height="6" rx="3" fill="var(--text-muted)" opacity="0.4" />
-                    <rect x="135" y="115" width="110" height="6" rx="3" fill="var(--text-muted)" opacity="0.3" />
-                    <rect x="135" y="130" width="120" height="6" rx="3" fill="var(--text-muted)" opacity="0.3" />
-                    <rect x="135" y="145" width="80" height="6" rx="3" fill="var(--text-muted)" opacity="0.2" />
-
-                    <!-- Floating note 1 -->
-                    <g transform="translate(280, 80) rotate(12)">
-                        <rect width="80" height="60" rx="8" fill="var(--bg-tertiary)" stroke="url(#heroGrad1)"
-                            stroke-width="2" />
-                        <rect x="10" y="12" width="40" height="5" rx="2" fill="url(#heroGrad1)" opacity="0.7" />
-                        <rect x="10" y="24" width="60" height="4" rx="2" fill="var(--text-muted)" opacity="0.3" />
-                        <rect x="10" y="34" width="50" height="4" rx="2" fill="var(--text-muted)" opacity="0.2" />
-                    </g>
-
-                    <!-- Floating note 2 -->
-                    <g transform="translate(40, 100) rotate(-8)">
-                        <rect width="70" height="50" rx="6" fill="var(--bg-tertiary)" stroke="var(--accent-secondary)"
-                            stroke-width="2" />
-                        <rect x="8" y="10" width="35" height="4" rx="2" fill="var(--accent-secondary)" opacity="0.7" />
-                        <rect x="8" y="20" width="50" height="3" rx="1.5" fill="var(--text-muted)" opacity="0.3" />
-                        <rect x="8" y="28" width="40" height="3" rx="1.5" fill="var(--text-muted)" opacity="0.2" />
-                    </g>
-
-                    <!-- Checkmark badge -->
-                    <circle cx="300" cy="200" r="25" fill="url(#heroGrad1)" />
-                    <path d="M290 200 L297 207 L312 192" stroke="white" stroke-width="4" fill="none"
-                        stroke-linecap="round" stroke-linejoin="round" />
-
-                    <!-- Sparkles -->
-                    <circle cx="100" cy="70" r="4" fill="url(#heroGrad1)" opacity="0.8" />
-                    <circle cx="320" cy="110" r="3" fill="var(--accent-secondary)" opacity="0.7" />
-                    <circle cx="80" cy="180" r="3" fill="var(--accent-tertiary)" opacity="0.6" />
-                    <circle cx="350" cy="170" r="5" fill="url(#heroGrad1)" opacity="0.5" />
-                </svg>
-            </div>
-
             <div class="login-card">
                 <div class="login-header">
                     <div class="login-logo">
                         <div class="logo-icon">
-                            <svg class="icon" viewBox="0 0 24 24">
-                                <path d="M12 20h9" />
-                                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                            </svg>
+                            <img src="{{ url_for('static', filename='images/logo.png') }}?v=1" alt="Notes"
+                                class="logo-img" style="width: 100px; height: 100px;">
                         </div>
                     </div>
                     <h1>Welcome to Notes</h1>
