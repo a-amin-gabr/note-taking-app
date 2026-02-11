@@ -128,12 +128,125 @@ function initEditModal() {
     const editForm = document.getElementById('edit-form');
     const closeBtn = document.getElementById('modal-close');
     const cancelBtn = document.getElementById('modal-cancel');
+    const btnAttach = document.getElementById('btn-attach');
+    const attachInput = document.getElementById('attach-input');
+    const attachmentList = document.getElementById('attachment-list');
+    const editStatus = document.getElementById('edit-status');
 
     if (!modal || !editForm) return;
+
+    // Helper to format bytes
+    const formatBytes = (bytes, decimals = 2) => {
+        if (!+bytes) return '0 Bytes';
+        const k = 1024;
+        const dm = decimals < 0 ? 0 : decimals;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+    };
+
+    // Helper: Insert text at cursor position (Undo-Safe)
+    const insertAtCursor = (text) => {
+        const textarea = document.getElementById('edit-content');
+        if (!textarea) return;
+
+        textarea.focus();
+
+        // Use execCommand to preserve undo history (Standard for text editors)
+        // Although deprecated, it is the only reliable way to handle undo stack programmatically
+        const success = document.execCommand('insertText', false, text);
+
+        // Fallback if execCommand fails (e.g. some mobile browsers)
+        if (!success) {
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const before = textarea.value.substring(0, start);
+            const after = textarea.value.substring(end);
+            textarea.value = before + text + after;
+            textarea.selectionStart = textarea.selectionEnd = start + text.length;
+            textarea.dispatchEvent(new Event('input'));
+        }
+    };
+
+    // Helper to render attachment item
+    const createAttachmentEl = (att, isReadOnly = false) => {
+        const div = document.createElement('div');
+        div.className = 'attachment-item';
+        div.id = `att-${att.id}`;
+
+        // File Icon based on type
+        let icon = '<svg class="icon" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/></svg>';
+        let isImage = false;
+
+        if (att.type?.startsWith('image/')) {
+            isImage = true;
+            // Use the actual image as the icon
+            icon = `<img src="${att.url}" alt="${att.filename}" class="attachment-thumbnail">`;
+        }
+
+        div.innerHTML = `
+            <div class="attachment-icon">${icon}</div>
+            <a href="${att.url}" target="_blank" title="${att.filename}">${att.filename}</a>
+            <span class="att-size">(${formatBytes(att.size || 0)})</span>
+            ${!isReadOnly ? `
+            <button type="button" class="delete-att-btn" data-id="${att.id}" title="Remove attachment">
+                <svg class="icon" viewBox="0 0 24 24" style="width:16px;height:16px"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>` : ''}
+        `;
+
+        if (!isReadOnly) {
+            const delBtn = div.querySelector('.delete-att-btn');
+            delBtn.addEventListener('click', async (e) => {
+                e.stopPropagation(); // Prevent insert trigger
+                if (!confirm('Remove this attachment?')) return;
+                const noteId = editForm.dataset.noteId;
+                try {
+                    const res = await fetch(`/api/note/${noteId}/attach/${att.id}`, { method: 'DELETE' });
+                    const data = await res.json();
+                    if (data.success) {
+                        div.remove();
+                    } else {
+                        alert('Failed to delete attachment: ' + (data.error || 'Unknown error'));
+                    }
+                } catch (e) {
+                    console.error(e);
+                    alert('Error deleting attachment');
+                }
+            });
+
+            // Click to Insert Logic
+            div.addEventListener('click', () => {
+                const md = att.type?.startsWith('image/') ?
+                    `![${att.filename}](${att.url})` :
+                    `[${att.filename}](${att.url})`;
+
+                if (typeof insertAtCursor === 'function') {
+                    insertAtCursor(md);
+                    // Visual feedback
+                    const originalBg = div.style.backgroundColor;
+                    div.style.backgroundColor = 'var(--bg-card-hover)';
+                    div.style.borderColor = 'var(--success)';
+                    setTimeout(() => {
+                        div.style.backgroundColor = originalBg;
+                        div.style.borderColor = '';
+                    }, 300);
+                }
+            });
+
+            div.title = "Click to insert into note";
+        }
+        return div;
+    };
 
     // Shared Open Modal Function
     const openModal = async (noteId, initialTab = 'raw') => {
         try {
+            // Reset UI
+            editForm.reset();
+            attachmentList.innerHTML = '';
+            editForm.dataset.noteId = noteId;
+            editStatus.textContent = '';
+
             const response = await fetch(`/api/note/${noteId}`);
             if (!response.ok) throw new Error('Note not found');
             const note = await response.json();
@@ -147,6 +260,13 @@ function initEditModal() {
                 categorySelect.value = note.category_id;
             }
 
+            // Populate attachments
+            if (note.attachments && note.attachments.length > 0) {
+                note.attachments.forEach(att => {
+                    attachmentList.appendChild(createAttachmentEl(att));
+                });
+            }
+
             // Set form action
             editForm.action = `/edit/${noteId}`;
 
@@ -155,12 +275,6 @@ function initEditModal() {
 
             // Handle Tab Selection
             const tabRaw = document.getElementById('tab-raw');
-            const tabPreview = document.getElementById('tab-preview');
-            const noteContent = document.getElementById('edit-content');
-            const previewDiv = document.getElementById('edit-preview');
-
-            // Reset to Raw tab always upon opening edit
-            // Unless specifically asked for preview (which we are not doing for edits anymore)
             if (tabRaw) tabRaw.click();
             document.getElementById('edit-content').focus();
 
@@ -169,6 +283,71 @@ function initEditModal() {
             alert('Failed to load note');
         }
     };
+
+    // Attachment Upload Handler
+    if (btnAttach && attachInput) {
+        btnAttach.addEventListener('click', () => attachInput.click());
+
+        attachInput.addEventListener('change', async () => {
+            if (!attachInput.files.length) return;
+            const file = attachInput.files[0];
+            const noteId = editForm.dataset.noteId;
+
+            if (!noteId) return;
+
+            // Show loading spinner
+            const originalBtnContent = btnAttach.innerHTML;
+            btnAttach.innerHTML = '<span class="spinner-sm"></span>';
+            btnAttach.disabled = true;
+            editStatus.textContent = 'Uploading...';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const res = await fetch(`/api/note/${noteId}/attach`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+
+                if (data.success && data.attachment) {
+                    // Add to list
+                    const el = createAttachmentEl(data.attachment);
+                    attachmentList.appendChild(el);
+
+                    // Add Click-to-Insert for new item
+                    el.addEventListener('click', (e) => {
+                        if (e.target.closest('.delete-att-btn')) return;
+                        const md = data.attachment.type.startsWith('image/') ?
+                            `![${data.attachment.filename}](${data.attachment.url})` :
+                            `[${data.attachment.filename}](${data.attachment.url})`;
+                        insertAtCursor(md);
+                    });
+
+                    // Auto-Insert at Cursor
+                    const md = data.attachment.type.startsWith('image/') ?
+                        `![${data.attachment.filename}](${data.attachment.url})` :
+                        `[${data.attachment.filename}](${data.attachment.url})`;
+                    insertAtCursor(md);
+
+                    editStatus.textContent = 'Attached & Link Inserted';
+                    setTimeout(() => editStatus.textContent = '', 3000);
+                } else {
+                    alert('Upload failed: ' + (data.error || 'Unknown error'));
+                    editStatus.textContent = 'Failed';
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Upload error');
+                editStatus.textContent = 'Error';
+            } finally {
+                btnAttach.innerHTML = originalBtnContent;
+                btnAttach.disabled = false;
+                attachInput.value = ''; // Reset input
+            }
+        });
+    }
 
     // Edit button click handlers
     document.querySelectorAll('.edit-btn').forEach(btn => {
@@ -179,20 +358,15 @@ function initEditModal() {
     });
 
     // Close handlers
-    if (closeBtn) {
-        closeBtn.addEventListener('click', () => modal.classList.remove('active'));
-    }
-
-    if (cancelBtn) {
-        cancelBtn.addEventListener('click', () => modal.classList.remove('active'));
-    }
-
-    // Click outside to close
+    if (closeBtn) closeBtn.addEventListener('click', () => modal.classList.remove('active'));
+    if (cancelBtn) cancelBtn.addEventListener('click', () => modal.classList.remove('active'));
     modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            modal.classList.remove('active');
-        }
+        if (e.target === modal) modal.classList.remove('active');
     });
+
+    // Validating global 'openEditModal' if needed, but we use event listeners
+    // If we wanted to expose it:
+    // window.openEditModal = openModal;
 }
 
 // ============================================
@@ -220,6 +394,34 @@ function initViewModal() {
             // Populate content
             document.getElementById('view-title').textContent = note.title || 'Untitled Note';
             document.getElementById('view-content').innerHTML = note.content_html || '<p>No content</p>';
+
+            // Populate attachments
+            const viewAttachments = document.getElementById('view-attachments');
+            viewAttachments.innerHTML = '';
+            if (note.attachments && note.attachments.length > 0) {
+                note.attachments.forEach(att => {
+                    // Re-use rendering logic? We defined it in initEditModal scope...
+                    // We should duplicates or move helper to global scope.
+                    // For now, duplicate simple rendering for read-only
+                    const div = document.createElement('div');
+                    div.className = 'attachment-item';
+
+                    let icon = '<svg class="icon" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/></svg>';
+                    if (att.type?.startsWith('image/')) {
+                        icon = '<svg class="icon" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>';
+                    }
+
+                    div.innerHTML = `
+                        ${icon}
+                        <a href="${att.url}" target="_blank" title="${att.filename}">${att.filename}</a>
+                        <span class="att-size" style="margin-left:auto">(${Math.round((att.size || 0) / 1024)} KB)</span>
+                    `;
+                    viewAttachments.appendChild(div);
+                });
+                viewAttachments.style.display = 'flex';
+            } else {
+                viewAttachments.style.display = 'none';
+            }
 
             // Populate metadata
             // Format: Feb 12, 2024 at 10:30 AM

@@ -21,6 +21,11 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 
+from werkzeug.utils import secure_filename
+# Trust reverse proxy headers (Nginx) so url_for generates correct public URLs
+from werkzeug.middleware.proxy_fix import ProxyFix
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
 # Upload configuration
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -46,26 +51,31 @@ except Exception as e:
     print(f"\u26a0\ufe0f S3 init failed (falling back to local): {e}")
 
 
-def upload_file_to_storage(file_data, filename, content_type='image/jpeg'):
+def upload_file_to_storage(file_data, filename, content_type='image/jpeg', folder='avatars'):
     """Upload file to S3 if available, otherwise save locally. Returns URL."""
     if S3_ENABLED and s3_client:
         try:
-            key = f"avatars/{filename}"
+            key = f"{folder}/{filename}"
             s3_client.put_object(
                 Bucket=S3_BUCKET,
                 Key=key,
                 Body=file_data,
                 ContentType=content_type
             )
-            return url_for('get_s3_avatar', filename=filename)
+            # Generate a pre-signed URL or public URL if bucket is public
+            # For this simple implementation, we'll return a path that might need a proxy route if private
+            # But let's assume we might need a getter for S3 files too
+            return url_for('get_s3_file', folder=folder, filename=filename)
         except Exception as e:
             print(f"S3 upload failed, falling back to local: {e}")
     
     # Local fallback
-    filepath = os.path.join(UPLOAD_FOLDER, filename)
+    local_folder = os.path.join(UPLOAD_FOLDER, folder)
+    os.makedirs(local_folder, exist_ok=True)
+    filepath = os.path.join(local_folder, filename)
     with open(filepath, 'wb') as f:
         f.write(file_data)
-    return f"/static/uploads/{filename}"
+    return f"/static/uploads/{folder}/{filename}"
 # Import and register auth blueprint
 from auth import auth_bp, login_required, get_current_user
 app.register_blueprint(auth_bp)
@@ -92,7 +102,8 @@ ALLOWED_ATTRS = {
 def get_db_connection():
     """Create and return a database connection."""
     try:
-        connection = mysql.connector.connect(**DB_CONFIG)
+        # Explicitly set auth_plugin for MariaDB compatibility
+        connection = mysql.connector.connect(**DB_CONFIG, auth_plugin='mysql_native_password')
         return connection
     except Error as e:
         print(f"Error connecting to MariaDB: {e}")
@@ -393,21 +404,25 @@ def upload_avatar():
     return redirect(url_for('profile'))
 
 
-@app.route('/s3/avatars/<path:filename>')
+@app.route('/s3/<folder>/<path:filename>')
 @login_required
-def get_s3_avatar(filename):
-    """Serve S3 avatar through the backend (proxy)."""
+def get_s3_file(folder, filename):
+    """Serve S3 file through the backend (proxy)."""
     if not S3_ENABLED or not s3_client:
         return jsonify({'error': 'S3 not enabled'}), 404
     
     try:
         # Fetch from S3
-        file_obj = s3_client.get_object(Bucket=S3_BUCKET, Key=f'avatars/{filename}')
+        # Ensure folder is valid to prevent traversal (basic check)
+        if folder not in ['avatars', 'attachments']:
+             return jsonify({'error': 'Invalid folder'}), 403
+
+        file_obj = s3_client.get_object(Bucket=S3_BUCKET, Key=f'{folder}/{filename}')
         
         # Stream response
         return Response(
             file_obj['Body'].read(),
-            mimetype=file_obj.get('ContentType', 'image/jpeg'),
+            mimetype=file_obj.get('ContentType', 'application/octet-stream'),
             headers={
                 'Cache-Control': 'public, max-age=31536000'
             }
@@ -417,6 +432,119 @@ def get_s3_avatar(filename):
         if 'NoSuchKey' in str(e):
              return jsonify({'error': 'File not found'}), 404
         return jsonify({'error': str(e)}), 500
+
+# =============================================================================
+# ATTACHMENTS
+# =============================================================================
+@app.route('/api/note/<int:note_id>/attach', methods=['POST'])
+@login_required
+def attach_file(note_id):
+    """Attach a file to a note."""
+    user_id = session['user_id']
+    
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+        
+    file = request.files['file']
+    if not file.filename:
+        return jsonify({'error': 'No selected file'}), 400
+        
+    # Check ownership
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({'error': 'Database connection failed'}), 500
+        
+    try:
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute('SELECT id FROM notes WHERE id = %s AND user_id = %s', (note_id, user_id))
+        if not cursor.fetchone():
+            return jsonify({'error': 'Note not found'}), 404
+            
+        # Process file
+        original_filename = secure_filename(file.filename)
+        # Unique filename to prevent collisions
+        unique_filename = f"{uuid.uuid4().hex}_{original_filename}"
+        
+        # Determine content type
+        content_type = file.mimetype or 'application/octet-stream'
+        
+        # Upload
+        file_data = file.read()
+        file_url = upload_file_to_storage(file_data, unique_filename, content_type, folder='attachments')
+        
+        # S3 key (if S3) or local path
+        # If upload_file_to_storage returns a URL, we need to derive the key/path for the DB
+        # But schema has s3_key. If local, we can just store the relative path or 'local:...'
+        # Actually, let's just store the key relative to generic storage
+        s3_key = f"attachments/{unique_filename}"
+        
+        file_size = len(file_data)
+        
+        cursor.execute(
+            'INSERT INTO attachments (note_id, filename, s3_key, file_type, file_size) VALUES (%s, %s, %s, %s, %s)',
+            (note_id, original_filename, s3_key, content_type, file_size)
+        )
+        connection.commit()
+        attachment_id = cursor.lastrowid
+        
+        return jsonify({
+            'success': True, 
+            'attachment': {
+                'id': attachment_id,
+                'filename': original_filename,
+                'url': file_url,
+                'size': file_size
+            }
+        })
+    except Error as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        connection.close()
+
+@app.route('/api/note/<int:note_id>/attach/<int:attachment_id>', methods=['DELETE'])
+@login_required
+def delete_attachment(note_id, attachment_id):
+    """Delete an attachment."""
+    user_id = session['user_id']
+    
+    connection = get_db_connection()
+    if not connection:
+        return jsonify({'error': 'Database connection failed'}), 500
+        
+    try:
+        cursor = connection.cursor(dictionary=True)
+        # Verify ownership via note
+        cursor.execute('''
+            SELECT a.id, a.s3_key 
+            FROM attachments a 
+            JOIN notes n ON a.note_id = n.id 
+            WHERE a.id = %s AND n.id = %s AND n.user_id = %s
+        ''', (attachment_id, note_id, user_id))
+        
+        attachment = cursor.fetchone()
+        if not attachment:
+            return jsonify({'error': 'Attachment not found'}), 404
+            
+        # Delete from DB
+        cursor.execute('DELETE FROM attachments WHERE id = %s', (attachment_id,))
+        connection.commit()
+        
+        # Optional: Delete from S3/Local
+        # Note: We might want to do this asynchronously or just ignore orphans for now
+        # But let's try to delete if S3
+        if S3_ENABLED and s3_client:
+            try:
+                s3_client.delete_object(Bucket=S3_BUCKET, Key=attachment['s3_key'])
+            except:
+                pass # Fail silently on storage delete
+                
+        return jsonify({'success': True})
+    except Error as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cursor.close()
+        connection.close()
 
 
 # =============================================================================
@@ -562,6 +690,80 @@ def toggle_archive(note_id):
 # =============================================================================
 # SHARE (API)
 # =============================================================================
+@app.route('/api/note/<int:note_id>')
+@login_required
+def get_note_api(note_id):
+    """Get note details (JSON) for modals."""
+    user_id = session['user_id']
+    connection = get_db_connection()
+    
+    if not connection:
+        return jsonify({'error': 'Database connection failed'}), 500
+        
+    try:
+        cursor = connection.cursor(dictionary=True)
+        # Fetch note
+        cursor.execute(
+            '''SELECT n.*, c.name as category_name, c.color as category_color 
+               FROM notes n 
+               LEFT JOIN categories c ON n.category_id = c.id 
+               WHERE n.id = %s AND n.user_id = %s''',
+            (note_id, user_id)
+        )
+        note = cursor.fetchone()
+        
+        if not note:
+            return jsonify({'error': 'Note not found'}), 404
+            
+        # Fetch attachments
+        cursor.execute(
+            'SELECT id, filename, file_size, file_type, s3_key, created_at FROM attachments WHERE note_id = %s ORDER BY created_at',
+            (note_id,)
+        )
+        attachments = cursor.fetchall()
+        
+        # Format attachments using our new upload logic
+        # We need to reconstruct the URL. 
+        # For local, it's /static/uploads/attachments/filename
+        # For S3, it's url_for('get_s3_file', folder='attachments', filename=filename) but we need to parse s3_key
+        
+        formatted_attachments = []
+        for att in attachments:
+            # Simple heuristic: if s3_key starts with attachments/, use that.
+            # If we don't store full URL in DB, we generate it here.
+            
+            # Extract filename from s3_key if possible or use filename
+            # s3_key is like "attachments/uuid_filename"
+            
+            # If S3 is enabled, use s3 route
+            if S3_ENABLED and s3_client:
+                 # We assume s3_key is "folder/filename"
+                 parts = att['s3_key'].split('/', 1)
+                 if len(parts) == 2:
+                     url = url_for('get_s3_file', folder=parts[0], filename=parts[1])
+                 else:
+                     url = '#' # Fallback
+            else:
+                 # Local fallback
+                 # Ensure we point to the right folder. 
+                 # Our upload logic stores s3_key as "attachments/filename".
+                 url = f"/static/uploads/{att['s3_key']}"
+
+            formatted_attachments.append({
+                'id': att['id'],
+                'filename': att['filename'],
+                'url': url,
+                'size': att['file_size'],
+                'type': att['file_type']
+            })
+
+        note['content_html'] = render_markdown(note['content'])
+        note['attachments'] = formatted_attachments
+        
+        return jsonify(note)
+    finally:
+        cursor.close()
+        connection.close()
 @app.route('/api/note/<int:note_id>/share', methods=['POST'])
 @login_required
 def api_share_note(note_id):
@@ -931,36 +1133,16 @@ def api_preview_markdown():
     return jsonify({'html': html})
 
 
-@app.route('/api/note/<int:note_id>')
-@login_required
-def api_get_note(note_id):
-    """Get single note as JSON for editing."""
-    user_id = session['user_id']
-    
-    connection = get_db_connection()
-    if not connection:
-        return jsonify({'error': 'Database connection failed'}), 500
-    
-    try:
-        cursor = connection.cursor(dictionary=True)
-        cursor.execute(
-            'SELECT * FROM notes WHERE id = %s AND user_id = %s',
-            (note_id, user_id)
-        )
-        note = cursor.fetchone()
-        
-        if note:
-            note['created_at'] = note['created_at'].isoformat() if note['created_at'] else None
-            note['updated_at'] = note['updated_at'].isoformat() if note['updated_at'] else None
-            note['content_html'] = render_markdown(note['content'])
-            return jsonify(note)
-        return jsonify({'error': 'Note not found'}), 404
-    finally:
-        cursor.close()
-        connection.close()
+
 # =============================================================================
 # MAIN
 # =============================================================================
+
+# =============================================================================
+# ATTACHMENTS
+# =============================================================================
+
+
 if __name__ == '__main__':
     init_db()
     debug_mode = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
