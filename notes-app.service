@@ -1,0 +1,18 @@
+[Unit]
+Description=Note Taking Flask Application
+After=network.target mariadb.service
+Wants=mariadb.service
+
+[Service]
+Type=simple
+User=ec2-user
+Group=ec2-user
+WorkingDirectory=/opt/note-taking-app
+Environment="PATH=/opt/note-taking-app/venv/bin"
+EnvironmentFile=/opt/note-taking-app/.env
+ExecStart=/opt/note-taking-app/venv/bin/gunicorn --bind 127.0.0.1:5000 --workers 2 app:app
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
