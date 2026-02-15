@@ -24,9 +24,7 @@ Thumbs.db
 # Logs
 *.log
 
-# Deployment & Operations (excluded from app repo)
-*.sh
-*.service
+# Deployment & Operations
 *.tar
 /backup/
 
