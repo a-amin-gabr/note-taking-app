@@ -25,11 +25,16 @@
     state: present
     login_unix_socket: /var/lib/mysql/mysql.sock
 
+- name: Copy database schema to remote host
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../../schema.sql"
+    dest: /tmp/schema.sql
+
 - name: Import database schema
   community.mysql.mysql_db:
     name: "{{ db_name }}"
     state: import
-    target: "{{ app_dir }}/schema.sql"
+    target: /tmp/schema.sql
     login_user: "{{ db_user }}"
     login_password: "{{ vault_db_password }}"
   # Only run if schema.sql exists and tables don't exist yet
