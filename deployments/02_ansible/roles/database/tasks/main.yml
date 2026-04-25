@@ -1,0 +1,36 @@
+---
+- name: Start and enable MariaDB
+  ansible.builtin.systemd:
+    name: mariadb
+    state: started
+    enabled: true
+
+- name: Install PyMySQL (required by Ansible mysql modules)
+  ansible.builtin.pip:
+    name: PyMySQL
+    executable: pip3
+
+- name: Create application database
+  community.mysql.mysql_db:
+    name: "{{ db_name }}"
+    state: present
+    login_unix_socket: /var/lib/mysql/mysql.sock
+
+- name: Create database user
+  community.mysql.mysql_user:
+    name: "{{ db_user }}"
+    password: "{{ vault_db_password }}"
+    priv: "{{ db_name }}.*:ALL"
+    host: localhost
+    state: present
+    login_unix_socket: /var/lib/mysql/mysql.sock
+
+- name: Import database schema
+  community.mysql.mysql_db:
+    name: "{{ db_name }}"
+    state: import
+    target: "{{ app_dir }}/schema.sql"
+    login_user: "{{ db_user }}"
+    login_password: "{{ vault_db_password }}"
+  # Only run if schema.sql exists and tables don't exist yet
+  # This task is idempotent because schema uses CREATE TABLE IF NOT EXISTS

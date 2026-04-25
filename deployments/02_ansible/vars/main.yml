@@ -1,0 +1,31 @@
+---
+# =============================================================
+# Plain-text variables (non-sensitive)
+# Sensitive values go in vars/vault.yml (ansible-vault)
+# =============================================================
+
+# Application
+app_name: note-taking-app
+app_repo: https://github.com/a-amin-gabr/note-taking-app.git
+app_dir: /opt/note-taking-app
+app_user: ec2-user
+app_group: ec2-user
+app_port: 5000
+app_workers: 2
+
+# Database
+db_name: notes_db
+db_user: notes_user
+db_host: localhost
+db_port: 3306
+
+# Backup
+backup_dir: /backup
+backup_device: /dev/nvme1n1
+backup_retention_days: 7
+backup_cron_hour: "2"
+backup_cron_minute: "0"
+
+# Flask
+flask_debug: "False"
+flask_env: production

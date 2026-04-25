@@ -1,0 +1,52 @@
+---
+- name: Ensure app directory exists
+  ansible.builtin.file:
+    path: "{{ app_dir }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: "0755"
+
+- name: Clone or update application repository
+  ansible.builtin.git:
+    repo: "{{ app_repo }}"
+    dest: "{{ app_dir }}"
+    version: main
+    force: true
+  become_user: "{{ app_user }}"
+
+- name: Create Python virtual environment
+  ansible.builtin.command:
+    cmd: python3 -m venv {{ app_dir }}/venv
+    creates: "{{ app_dir }}/venv"
+  become_user: "{{ app_user }}"
+
+- name: Install Python dependencies
+  ansible.builtin.pip:
+    requirements: "{{ app_dir }}/requirements.txt"
+    virtualenv: "{{ app_dir }}/venv"
+  become_user: "{{ app_user }}"
+
+- name: Deploy .env file from template
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ app_dir }}/.env"
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: "0600"   # Restrict permissions — secrets file
+
+- name: Install systemd service file
+  ansible.builtin.template:
+    src: notes-app.service.j2
+    dest: /etc/systemd/system/notes-app.service
+    mode: "0644"
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Start and enable notes-app service
+  ansible.builtin.systemd:
+    name: notes-app
+    state: started
+    enabled: true
