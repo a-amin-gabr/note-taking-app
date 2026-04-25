@@ -1,0 +1,9 @@
+---
+vault_db_password: "CHANGE_ME"
+vault_secret_key: "CHANGE_ME"
+vault_cognito_user_pool_id: ""
+vault_cognito_client_id: ""
+vault_cognito_client_secret: ""
+vault_cognito_domain: ""
+vault_s3_bucket_name: ""
+vault_aws_region: "us-east-1"

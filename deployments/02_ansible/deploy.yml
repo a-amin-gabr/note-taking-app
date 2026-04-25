@@ -1,0 +1,19 @@
+---
+# =============================================================
+# Main Playbook: Deploy Note-Taking App on RHEL 10
+# Usage: ansible-playbook deploy.yml
+# =============================================================
+
+- name: Deploy Note-Taking Application
+  hosts: notes_app
+  become: true
+  vars_files:
+    - vars/main.yml
+    - vars/vault.yml        # ansible-vault encrypted secrets
+
+  roles:
+    - role: common          # System packages & OS hardening
+    - role: database        # MariaDB setup
+    - role: application     # App clone, venv, pip, .env, systemd
+    - role: webserver       # Nginx reverse proxy
+    - role: backup          # EBS volume mount & cron job

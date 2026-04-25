@@ -1,0 +1,2 @@
+# Ansible Vault — never commit the real vault.yml
+vars/vault.yml

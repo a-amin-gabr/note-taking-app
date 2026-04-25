@@ -1,0 +1,18 @@
+[Unit]
+Description=Note Taking Flask Application
+After=network.target mariadb.service
+Wants=mariadb.service
+
+[Service]
+Type=simple
+User={{ app_user }}
+Group={{ app_group }}
+WorkingDirectory={{ app_dir }}
+Environment="PATH={{ app_dir }}/venv/bin"
+EnvironmentFile={{ app_dir }}/.env
+ExecStart={{ app_dir }}/venv/bin/gunicorn --bind 127.0.0.1:{{ app_port }} --workers {{ app_workers }} app:app
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
