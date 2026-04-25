@@ -2,7 +2,7 @@
 
 A full-stack note-taking application built with **Flask**, **MariaDB**, and **AWS services**. Features user authentication via AWS Cognito (with guest mode fallback), S3 file attachments, Markdown rendering, and a complete modular deployment system for RHEL 10 on EC2.
 
-**Live Demo:** [linux.depi.projects.abdallahgabr.me](https://linux.depi.projects.abdallahgabr.me/)
+**Live Demo:** [notes.abdallahgabr.me](https://notes.abdallahgabr.me/)
 
 ---
 

@@ -12,6 +12,8 @@ app_user: ec2-user
 app_group: ec2-user
 app_port: 5000
 app_workers: 2
+app_domain: "notes.abdallahgabr.me"
+certbot_email: "a.amin.gabr@gmail.com"  # Change to real email if you want expiration notices
 
 # Database
 db_name: notes_db
