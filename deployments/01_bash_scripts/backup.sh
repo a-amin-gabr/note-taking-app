@@ -7,7 +7,7 @@
 # Configuration
 # Dynamic directory detection
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-APP_DIR="${SCRIPT_DIR}"
+APP_DIR="$( cd "${SCRIPT_DIR}/../.." &> /dev/null && pwd )"
 BACKUP_DIR="/backup"
 LOG_FILE="${APP_DIR}/backup.log"
 

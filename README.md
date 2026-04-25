@@ -207,21 +207,23 @@ note-taking-app/
 │   └── images/
 │       └── logo.png         # App logo and favicon
 │
-├── deploy.sh                # Master deployment script
-├── backup.sh                # Daily MariaDB backup (cron)
-├── restore.sh               # Restore from backup (interactive)
+├── deployments/             # DevOps Journey
+│   └── 01_bash_scripts/     # Stage 1: Bash deployment
+│       ├── deploy.sh        # Master deployment script
+│       ├── backup.sh        # Daily MariaDB backup (cron)
+│       ├── restore.sh       # Restore from backup (interactive)
+│       ├── notes-app.service# Systemd unit file for Gunicorn
+│       ├── DEPLOYMENT.md    # Full deployment guide
+│       └── scripts/         # Individual setup steps
+│           ├── 01_install_deps.sh
+│           ├── 02_setup_db.sh
+│           ├── 03_setup_app.sh
+│           ├── 04_setup_service.sh
+│           ├── 05_setup_nginx.sh
+│           ├── 06_prepare_volume.sh
+│           └── 07_setup_backup.sh
 │
-├── scripts/
-│   ├── 01_install_deps.sh   # System packages (dnf)
-│   ├── 02_setup_db.sh       # MariaDB setup
-│   ├── 03_setup_app.sh      # Python venv & pip
-│   ├── 04_setup_service.sh  # Systemd service
-│   ├── 05_setup_nginx.sh    # Nginx reverse proxy
-│   ├── 06_prepare_volume.sh # EBS volume -> /backup
-│   └── 07_setup_backup.sh   # Cron job scheduling
-│
-├── DEPLOYMENT.md            # Full deployment guide
-└── README.md                # This file
+├── README.md                # This file
 ```
 
 ---
@@ -231,7 +233,7 @@ note-taking-app/
 ### One-Command Deploy
 
 ```bash
-sudo ./deploy.sh /dev/nvme1n1
+sudo ./deployments/01_bash_scripts/deploy.sh /dev/nvme1n1
 ```
 
 This runs 7 setup steps automatically: system deps, MariaDB, app setup, Gunicorn, Nginx, EBS volume, and cron backup.
@@ -241,16 +243,16 @@ This runs 7 setup steps automatically: system deps, MariaDB, app setup, Gunicorn
 Run individual scripts for granular control:
 
 ```bash
-sudo bash scripts/01_install_deps.sh
-sudo bash scripts/02_setup_db.sh
-sudo bash scripts/03_setup_app.sh
-sudo bash scripts/04_setup_service.sh
-sudo bash scripts/05_setup_nginx.sh
-sudo bash scripts/06_prepare_volume.sh /dev/nvme1n1
-sudo bash scripts/07_setup_backup.sh
+sudo bash deployments/01_bash_scripts/scripts/01_install_deps.sh
+sudo bash deployments/01_bash_scripts/scripts/02_setup_db.sh
+sudo bash deployments/01_bash_scripts/scripts/03_setup_app.sh
+sudo bash deployments/01_bash_scripts/scripts/04_setup_service.sh
+sudo bash deployments/01_bash_scripts/scripts/05_setup_nginx.sh
+sudo bash deployments/01_bash_scripts/scripts/06_prepare_volume.sh /dev/nvme1n1
+sudo bash deployments/01_bash_scripts/scripts/07_setup_backup.sh
 ```
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for the full guide.
+See [deployments/01_bash_scripts/DEPLOYMENT.md](deployments/01_bash_scripts/DEPLOYMENT.md) for the full guide.
 
 ---
 
@@ -267,17 +269,17 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for the full guide.
 ### Manual Backup
 
 ```bash
-sudo ./backup.sh
+sudo ./deployments/01_bash_scripts/backup.sh
 ```
 
 ### Restore
 
 ```bash
 # Interactive - lists available backups, pick by number
-sudo ./restore.sh
+sudo ./deployments/01_bash_scripts/restore.sh
 
 # Direct - specify a backup file
-sudo ./restore.sh notes_backup_20260215_020000.sql.gz
+sudo ./deployments/01_bash_scripts/restore.sh notes_backup_20260215_020000.sql.gz
 ```
 
 The restore script creates a **safety backup** before overwriting the database.

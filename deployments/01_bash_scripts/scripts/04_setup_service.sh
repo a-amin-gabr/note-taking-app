@@ -3,8 +3,8 @@
 # Step 4: Setup Systemd Service (Gunicorn)
 # =====================================================
 
-APP_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." &> /dev/null && pwd )"
-SERVICE_FILE="${APP_DIR}/notes-app.service"
+APP_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../../.." &> /dev/null && pwd )"
+SERVICE_FILE="${APP_DIR}/deployments/01_bash_scripts/notes-app.service"
 
 echo "========================================="
 echo "Step 4: Setting Up Systemd Service"

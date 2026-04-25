@@ -3,7 +3,7 @@
 # Step 2: Setup MariaDB Database
 # =====================================================
 
-APP_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." &> /dev/null && pwd )"
+APP_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../../.." &> /dev/null && pwd )"
 
 # Load .env if exists
 if [ -f "${APP_DIR}/.env" ]; then

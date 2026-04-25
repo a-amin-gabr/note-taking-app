@@ -3,8 +3,8 @@
 # Step 7: Setup Automated Backup (Cron)
 # =====================================================
 
-APP_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." &> /dev/null && pwd )"
-BACKUP_SCRIPT="${APP_DIR}/backup.sh"
+APP_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../../.." &> /dev/null && pwd )"
+BACKUP_SCRIPT="${APP_DIR}/deployments/01_bash_scripts/backup.sh"
 BACKUP_DIR="/backup"
 CRON_SCHEDULE="0 2 * * *"
 

@@ -3,7 +3,7 @@
 # Step 3: Setup Application (venv, pip, .env)
 # =====================================================
 
-APP_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." &> /dev/null && pwd )"
+APP_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../../.." &> /dev/null && pwd )"
 
 echo "========================================="
 echo "Step 3: Setting Up Application"
