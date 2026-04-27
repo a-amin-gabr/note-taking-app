@@ -37,5 +37,3 @@
     target: /tmp/schema.sql
     login_user: "{{ db_user }}"
     login_password: "{{ vault_db_password }}"
-  # Only run if schema.sql exists and tables don't exist yet
-  # This task is idempotent because schema uses CREATE TABLE IF NOT EXISTS

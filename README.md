@@ -222,6 +222,14 @@ note-taking-app/
 │           ├── 05_setup_nginx.sh
 │           ├── 06_prepare_volume.sh
 │           └── 07_setup_backup.sh
+│   ├── 02_ansible/          # Stage 2: Ansible automation
+│   │   ├── deploy.yml       # Master playbook
+│   │   ├── roles/           # Ansible roles
+│   │   └── vars/            # Variables and Vault
+│   └── 03_docker/           # Stage 3: Containerization
+│       ├── Dockerfile       # Multi-stage build
+│       ├── docker-compose.yml # 3-service orchestration
+│       └── nginx/           # Nginx reverse proxy configs
 │
 ├── README.md                # This file
 ```
@@ -252,7 +260,34 @@ sudo bash deployments/01_bash_scripts/scripts/06_prepare_volume.sh /dev/nvme1n1
 sudo bash deployments/01_bash_scripts/scripts/07_setup_backup.sh
 ```
 
-See [deployments/01_bash_scripts/DEPLOYMENT.md](deployments/01_bash_scripts/DEPLOYMENT.md) for the full guide.
+See [deployments/01_bash_scripts/README.md](deployments/01_bash_scripts/README.md) for the full guide.
+
+---
+
+## Deployment (Ansible)
+
+**Stage 2:** Full infrastructure-as-code automation.
+
+```bash
+cd deployments/02_ansible
+ansible-playbook deploy.yml --ask-vault-pass
+```
+
+See [deployments/02_ansible/README.md](deployments/02_ansible/README.md) for details.
+
+---
+
+## Deployment (Docker)
+
+**Stage 3:** Containerized application environment using Docker Compose.
+
+```bash
+cd deployments/03_docker
+cp .env.example .env
+docker compose up -d --build
+```
+
+See [deployments/03_docker/README.md](deployments/03_docker/README.md) for architecture and scaling details.
 
 ---
 

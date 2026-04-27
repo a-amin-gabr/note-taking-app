@@ -1,0 +1,22 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# Environment
+.env
+
+# Deployment directories (not needed in app image)
+deployments/
+
+# Misc
+*.tar
+*.md
