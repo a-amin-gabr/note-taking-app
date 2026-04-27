@@ -35,11 +35,11 @@ Visit **http://localhost** — the app is live!
 ## Architecture
 
 ```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│    Nginx     │────▶│  Flask App  │────▶│   MariaDB   │
-│  (Port 80)  │     │ (Port 5000) │     │ (Port 3306) │
-└─────────────┘     └─────────────┘     └─────────────┘
-     web                 app                  db
+┌─────────────┐     ┌─────────────┐      ┌─────────────┐
+│    Nginx    │────▶│  Flask App  │────▶│   MariaDB   │
+│  (Port 80)  │     │ (Port 5000) │      │ (Port 3306) │
+└─────────────┘     └─────────────┘      └─────────────┘
+     web                 app                   db
 ```
 
 - **Nginx** handles external traffic on port 80/443 and proxies to the Flask container.
