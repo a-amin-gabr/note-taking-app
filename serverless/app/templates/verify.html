@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Note-Taking App - Verify Email">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Verify Email | Note Taking App</title>
+    <link rel="icon" href="{{ url_for('static', filename='images/logo.png') }}?v=1" type="image/png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='icons.css') }}">
+    <style>
+        .login-decoration {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .floating-shape {
+            position: absolute;
+            border-radius: 50%;
+            background: var(--gradient-accent);
+            filter: blur(80px);
+            opacity: 0.15;
+            animation: float 20s ease-in-out infinite;
+        }
+
+        .shape-1 { width: 400px; height: 400px; top: -100px; right: -100px; animation-delay: 0s; }
+        .shape-2 { width: 300px; height: 300px; bottom: -50px; left: -50px; animation-delay: -7s; }
+        .shape-3 { width: 200px; height: 200px; top: 50%; left: 30%; animation-delay: -14s; }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(20px, -20px) scale(1.05); }
+            50% { transform: translate(-10px, 10px) scale(0.95); }
+            75% { transform: translate(-20px, -10px) scale(1.02); }
+        }
+
+        .login-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+            max-width: 500px;
+            width: 100%;
+            padding: 1rem;
+            margin: 0 auto;
+            margin-top: 10vh;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .form-control {
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        .login-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 2.5rem;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            position: relative;
+            z-index: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-page">
+        <div class="login-decoration">
+            <div class="floating-shape shape-1"></div>
+            <div class="floating-shape shape-2"></div>
+            <div class="floating-shape shape-3"></div>
+        </div>
+
+        <div class="login-container">
+            <div class="login-card">
+                <div class="login-header">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 64px; height: 64px; color: var(--accent-primary); margin-bottom: 1rem;">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                    <h1>Verify Your Email</h1>
+                    <p style="color: var(--text-secondary); margin-top: 0.5rem;">We've sent a 6-digit code to your email.</p>
+                </div>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                    <div class="flash {{ category }}" style="margin-bottom: 1rem; padding: 1rem; border-radius: 8px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2);">{{ message }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% endwith %}
+
+                <form method="POST" action="{{ url_for('auth.verify') }}" class="auth-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" class="form-control" required value="{{ email }}" readonly style="opacity: 0.7; cursor: not-allowed;">
+                    </div>
+                    <div class="form-group">
+                        <label for="code">Verification Code</label>
+                        <input type="text" id="code" name="code" class="form-control" required placeholder="123456" pattern="\d{6}" title="6-digit code">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-large btn-block" style="width: 100%; justify-content: center; margin-top: 10px;">
+                        Verify Account
+                    </button>
+                    
+                    <p class="auth-switch" style="text-align: center; margin-top: 15px; font-size: 0.9rem;">
+                        <a href="{{ url_for('auth.login') }}" style="color: var(--text-secondary); text-decoration: none;">Back to Login</a>
+                    </p>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

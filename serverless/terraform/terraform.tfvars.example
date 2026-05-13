@@ -1,0 +1,16 @@
+aws_region   = "eu-central-1"
+project_name = "notes-app"
+app_domain   = "notes.abdallahgabr.me"
+root_domain  = "abdallahgabr.me"
+
+# Flask
+secret_key = "generate-with-openssl-rand-hex-32"
+
+# Cognito
+cognito_domain_prefix = "notes-app-675419755531"
+
+# Google Social Login
+google_client_id     = "your-google-client-id"
+google_client_secret = "your-google-client-secret"
+
+

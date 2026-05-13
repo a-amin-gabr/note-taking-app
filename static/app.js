@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize components
     const shortcutsModal = document.getElementById('shortcuts-modal');
 
+    initCsrfProtection();
     initTheme();
     initEditModal();
     initKeyboardShortcuts();
@@ -18,6 +19,41 @@ document.addEventListener('DOMContentLoaded', () => {
     initShareModal();
     initMobileMenu();
 });
+
+function getCsrfToken() {
+    return document.querySelector('meta[name="csrf-token"]')?.content || '';
+}
+
+function initCsrfProtection() {
+    const csrfToken = getCsrfToken();
+    if (!csrfToken) return;
+
+    document.querySelectorAll('form').forEach((form) => {
+        const method = (form.getAttribute('method') || 'GET').toUpperCase();
+        if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) return;
+        if (form.querySelector('input[name="csrf_token"]')) return;
+
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'csrf_token';
+        input.value = csrfToken;
+        form.appendChild(input);
+    });
+}
+
+async function apiFetch(input, init = {}) {
+    const csrfToken = getCsrfToken();
+    const options = { ...init };
+    const method = (options.method || 'GET').toUpperCase();
+    const headers = new Headers(options.headers || {});
+
+    if (csrfToken && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+        headers.set('X-CSRFToken', csrfToken);
+    }
+
+    options.headers = headers;
+    return fetch(input, options);
+}
 
 // ============================================
 // Theme Toggle
@@ -201,7 +237,7 @@ function initEditModal() {
                 if (!confirm('Remove this attachment?')) return;
                 const noteId = editForm.dataset.noteId;
                 try {
-                    const res = await fetch(`/api/note/${noteId}/attach/${att.id}`, { method: 'DELETE' });
+                    const res = await apiFetch(`/api/note/${noteId}/attach/${att.id}`, { method: 'DELETE' });
                     const data = await res.json();
                     if (data.success) {
                         div.remove();
@@ -305,13 +341,19 @@ function initEditModal() {
             formData.append('file', file);
 
             try {
-                const res = await fetch(`/api/note/${noteId}/attach`, {
+                const res = await apiFetch(`/api/note/${noteId}/attach`, {
                     method: 'POST',
                     body: formData
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
+
+                if (!res.ok) {
+                    throw new Error(data.error || 'Upload failed');
+                }
 
                 if (data.success && data.attachment) {
+                    const isImage = data.attachment.type?.startsWith('image/');
+
                     // Add to list
                     const el = createAttachmentEl(data.attachment);
                     attachmentList.appendChild(el);
@@ -319,14 +361,14 @@ function initEditModal() {
                     // Add Click-to-Insert for new item
                     el.addEventListener('click', (e) => {
                         if (e.target.closest('.delete-att-btn')) return;
-                        const md = data.attachment.type.startsWith('image/') ?
+                        const md = isImage ?
                             `![${data.attachment.filename}](${data.attachment.url})` :
                             `[${data.attachment.filename}](${data.attachment.url})`;
                         insertAtCursor(md);
                     });
 
                     // Auto-Insert at Cursor
-                    const md = data.attachment.type.startsWith('image/') ?
+                    const md = isImage ?
                         `![${data.attachment.filename}](${data.attachment.url})` :
                         `[${data.attachment.filename}](${data.attachment.url})`;
                     insertAtCursor(md);
@@ -339,7 +381,7 @@ function initEditModal() {
                 }
             } catch (e) {
                 console.error(e);
-                alert('Upload error');
+                alert(`Upload error: ${e.message || 'Unknown error'}`);
                 editStatus.textContent = 'Error';
             } finally {
                 btnAttach.innerHTML = originalBtnContent;
@@ -400,22 +442,29 @@ function initViewModal() {
             viewAttachments.innerHTML = '';
             if (note.attachments && note.attachments.length > 0) {
                 note.attachments.forEach(att => {
-                    // Re-use rendering logic? We defined it in initEditModal scope...
-                    // We should duplicates or move helper to global scope.
-                    // For now, duplicate simple rendering for read-only
                     const div = document.createElement('div');
-                    div.className = 'attachment-item';
+                    const isImage = att.type?.startsWith('image/');
 
-                    let icon = '<svg class="icon" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/></svg>';
-                    if (att.type?.startsWith('image/')) {
-                        icon = '<svg class="icon" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>';
+                    if (isImage) {
+                        div.className = 'attachment-preview-card';
+                        div.innerHTML = `
+                            <a href="${att.url}" target="_blank" class="attachment-preview-link" title="${att.filename}">
+                                <img src="${att.url}" alt="${att.filename}" class="attachment-preview-image">
+                            </a>
+                            <div class="attachment-preview-meta">
+                                <a href="${att.url}" target="_blank" title="${att.filename}">${att.filename}</a>
+                                <span class="att-size">(${Math.round((att.size || 0) / 1024)} KB)</span>
+                            </div>
+                        `;
+                    } else {
+                        div.className = 'attachment-item';
+                        div.innerHTML = `
+                            <svg class="icon" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/></svg>
+                            <a href="${att.url}" target="_blank" title="${att.filename}">${att.filename}</a>
+                            <span class="att-size" style="margin-left:auto">(${Math.round((att.size || 0) / 1024)} KB)</span>
+                        `;
                     }
 
-                    div.innerHTML = `
-                        ${icon}
-                        <a href="${att.url}" target="_blank" title="${att.filename}">${att.filename}</a>
-                        <span class="att-size" style="margin-left:auto">(${Math.round((att.size || 0) / 1024)} KB)</span>
-                    `;
                     viewAttachments.appendChild(div);
                 });
                 viewAttachments.style.display = 'flex';
@@ -514,7 +563,7 @@ function initEditTabs() {
         previewDiv.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-muted);">Loading preview...</div>';
 
         try {
-            const response = await fetch('/api/preview', {
+            const response = await apiFetch('/api/preview', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content: noteContent.value })
@@ -763,7 +812,7 @@ function initShareModal() {
             generateBtn.innerHTML = 'Generating...';
 
             try {
-                const res = await fetch(`/api/note/${currentNoteId}/share`, { method: 'POST' });
+                const res = await apiFetch(`/api/note/${currentNoteId}/share`, { method: 'POST' });
                 const data = await res.json();
 
                 if (data.share_url) {
@@ -800,7 +849,7 @@ function initShareModal() {
             stopBtn.disabled = true;
 
             try {
-                const res = await fetch(`/api/note/${currentNoteId}/share`, { method: 'DELETE' });
+                const res = await apiFetch(`/api/note/${currentNoteId}/share`, { method: 'DELETE' });
                 const data = await res.json();
 
                 if (data.success) {

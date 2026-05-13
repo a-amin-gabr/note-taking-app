@@ -1,0 +1,30 @@
+.background-customizable {
+    background-color: #0f172a;
+}
+.banner-customizable {
+    background-color: #0f172a;
+    padding: 20px;
+}
+.submitButton-customizable {
+    background-color: #6366f1;
+    color: #ffffff;
+    font-weight: bold;
+    border-radius: 8px;
+    border: none;
+}
+.submitButton-customizable:hover {
+    background-color: #4f46e5;
+}
+.inputField-customizable {
+    border-radius: 8px;
+    border: 1px solid #334155;
+    background-color: #1e293b;
+    color: #f8fafc;
+}
+.label-customizable {
+    color: #cbd5e1;
+    font-weight: 500;
+}
+.textDescription-customizable {
+    color: #94a3b8;
+}

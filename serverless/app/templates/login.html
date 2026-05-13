@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Note-Taking App - Login or continue as guest">
+    <title>Login | Note Taking App</title>
+    <link rel="icon" href="{{ url_for('static', filename='images/logo.png') }}?v=1" type="image/png">
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='icons.css') }}">
+</head>
+
+<body>
+    <div class="login-page">
+        <!-- Decorative Elements -->
+        <div class="login-decoration">
+            <div class="floating-shape shape-1"></div>
+            <div class="floating-shape shape-2"></div>
+            <div class="floating-shape shape-3"></div>
+        </div>
+
+        <div class="login-container">
+            <div class="login-card">
+                <div class="login-header">
+                    <div class="login-logo">
+                        <div class="logo-icon">
+                            <img src="{{ url_for('static', filename='images/logo.png') }}?v=1" alt="Notes"
+                                class="logo-img" style="width: 100px; height: 100px;">
+                        </div>
+                    </div>
+                    <h1>Welcome to Notes</h1>
+                    <p>Capture your thoughts, ideas, and moments</p>
+                </div>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% endwith %}
+
+                <div class="login-options" style="width: 100%; display: flex; flex-direction: column; gap: 15px;">
+                    <a href="{{ url_for('auth.signin') }}" class="btn btn-primary btn-large">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                            <polyline points="10 17 15 12 10 7"/>
+                            <line x1="15" x2="3" y1="12" y2="12"/>
+                        </svg>
+                        Log In
+                    </a>
+
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-secondary btn-large">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="8.5" cy="7" r="4"/>
+                            <line x1="20" y1="8" x2="20" y2="14"/>
+                            <line x1="23" y1="11" x2="17" y2="11"/>
+                        </svg>
+                        Create Account
+                    </a>
+
+                    <div class="divider">
+                        <span>or</span>
+                    </div>
+
+                    <a href="{{ url_for('auth.guest_login') }}" class="btn btn-secondary btn-large">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
+                        </svg>
+                        Continue as Guest
+                    </a>
+
+                    <p class="guest-note">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="M12 16v-4" />
+                            <path d="M12 8h.01" />
+                        </svg>
+                        Guest data is temporary and stored in your session only.
+                    </p>
+                </div>
+
+                <div class="features-preview">
+                    <h3>
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path
+                                d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+                        </svg>
+                        Features
+                    </h3>
+                    <ul>
+                        <li>
+                            <svg class="icon" viewBox="0 0 24 24">
+                                <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            Markdown support
+                        </li>
+                        <li>
+                            <svg class="icon" viewBox="0 0 24 24">
+                                <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            Categories & tags
+                        </li>
+                        <li>
+                            <svg class="icon" viewBox="0 0 24 24">
+                                <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            Pin & archive
+                        </li>
+                        <li>
+                            <svg class="icon" viewBox="0 0 24 24">
+                                <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            Export to JSON/TXT
+                        </li>
+                        <li>
+                            <svg class="icon" viewBox="0 0 24 24">
+                                <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            Dark/Light theme
+                        </li>
+                        <li>
+                            <svg class="icon" viewBox="0 0 24 24">
+                                <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            Keyboard shortcuts
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        /* Login Page Specific Styles */
+        .login-decoration {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .floating-shape {
+            position: absolute;
+            border-radius: 50%;
+            background: var(--gradient-accent);
+            filter: blur(80px);
+            opacity: 0.15;
+            animation: float 20s ease-in-out infinite;
+        }
+
+        .shape-1 {
+            width: 400px;
+            height: 400px;
+            top: -100px;
+            right: -100px;
+            animation-delay: 0s;
+        }
+
+        .shape-2 {
+            width: 300px;
+            height: 300px;
+            bottom: -50px;
+            left: -50px;
+            animation-delay: -7s;
+        }
+
+        .shape-3 {
+            width: 200px;
+            height: 200px;
+            top: 50%;
+            left: 30%;
+            animation-delay: -14s;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            25% {
+                transform: translate(20px, -20px) scale(1.05);
+            }
+
+            50% {
+                transform: translate(-10px, 10px) scale(0.95);
+            }
+
+            75% {
+                transform: translate(-20px, -10px) scale(1.02);
+            }
+        }
+
+        .login-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+            max-width: 500px;
+            width: 100%;
+            padding: 1rem;
+        }
+
+        .login-hero {
+            width: 100%;
+            max-width: 350px;
+        }
+
+        .hero-illustration {
+            width: 100%;
+            height: auto;
+        }
+
+        .login-card {
+            width: 100%;
+        }
+
+        .login-logo {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .login-logo .logo-icon {
+            width: 64px;
+            height: 64px;
+            padding: 1rem;
+            border-radius: 20px;
+        }
+
+        .login-logo .icon {
+            width: 100%;
+            height: 100%;
+        }
+
+        .guest-note {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            justify-content: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+        }
+
+        .guest-note .icon {
+            width: 1rem;
+            height: 1rem;
+            flex-shrink: 0;
+        }
+
+        .features-preview h3 {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+        }
+
+        .features-preview h3 .icon {
+            width: 1.125rem;
+            height: 1.125rem;
+            color: var(--accent-primary);
+        }
+
+        .features-preview ul li {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .features-preview ul li .icon {
+            width: 1rem;
+            height: 1rem;
+            color: var(--success);
+        }
+
+        @media (max-width: 600px) {
+            .login-hero {
+                max-width: 280px;
+            }
+
+            .login-logo .logo-icon {
+                width: 56px;
+                height: 56px;
+            }
+        }
+    </style>
+</body>
+
+</html>

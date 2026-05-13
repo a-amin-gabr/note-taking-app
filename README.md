@@ -207,7 +207,7 @@ note-taking-app/
 │   └── images/
 │       └── logo.png         # App logo and favicon
 │
-├── deployments/             # DevOps Journey
+├── deployments/             # DevOps Journey (Server-Based)
 │   └── 01_bash_scripts/     # Stage 1: Bash deployment
 │       ├── deploy.sh        # Master deployment script
 │       ├── backup.sh        # Daily MariaDB backup (cron)
@@ -215,13 +215,6 @@ note-taking-app/
 │       ├── notes-app.service# Systemd unit file for Gunicorn
 │       ├── DEPLOYMENT.md    # Full deployment guide
 │       └── scripts/         # Individual setup steps
-│           ├── 01_install_deps.sh
-│           ├── 02_setup_db.sh
-│           ├── 03_setup_app.sh
-│           ├── 04_setup_service.sh
-│           ├── 05_setup_nginx.sh
-│           ├── 06_prepare_volume.sh
-│           └── 07_setup_backup.sh
 │   ├── 02_ansible/          # Stage 2: Ansible automation
 │   │   ├── deploy.yml       # Master playbook
 │   │   ├── roles/           # Ansible roles
@@ -230,6 +223,11 @@ note-taking-app/
 │       ├── Dockerfile       # Multi-stage build
 │       ├── docker-compose.yml # 3-service orchestration
 │       └── nginx/           # Nginx reverse proxy configs
+│
+├── serverless/              # Stage 4: Fully Serverless (Terraform)
+│   ├── app/                 # Lambda application (DynamoDB)
+│   ├── terraform/           # Modular IaC (5 modules)
+│   └── scripts/             # Deploy helpers
 │
 ├── README.md                # This file
 ```
@@ -288,6 +286,19 @@ docker compose up -d --build
 ```
 
 See [deployments/03_docker/README.md](deployments/03_docker/README.md) for architecture and scaling details.
+
+---
+
+## Deployment (Serverless + Terraform)
+
+**Stage 4:** Fully serverless — Lambda, DynamoDB, CloudFront, API Gateway. Zero servers, ~$0.50/month.
+
+```bash
+cd serverless/scripts
+./deploy.sh
+```
+
+The serverless deploy script accepts `TF_STATE_BUCKET`, `TF_STATE_KEY`, and `TF_STATE_REGION` for Terraform backend setup. See [serverless/README.md](serverless/README.md) for the full architecture, bootstrap steps, and module breakdown.
 
 ---
 

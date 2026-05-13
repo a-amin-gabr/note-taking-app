@@ -1,0 +1,14 @@
+# Terraform state and workspace
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/.terraform.lock.hcl
+terraform/terraform.tfvars
+
+# Lambda package artifacts
+package/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
